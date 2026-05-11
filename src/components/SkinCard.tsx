@@ -75,7 +75,7 @@ export const SkinCard = ({
 
         {/* Bottom Skin Name */}
         <div className="bg-black py-2 px-3 text-center border-t border-zinc-800">
-          <span className="text-white font-bold text-[10px] uppercase tracking-wider truncate block">
+          <span className="text-white font-bold text-[10px] tracking-wider truncate block">
             {skin?.displayName || "Unknown Skin"}
           </span>
         </div>
@@ -110,7 +110,7 @@ export const SkinCard = ({
 
       <div className="bg-[#1f2326] px-4 py-3 flex flex-col gap-1 border-t border-zinc-800">
         <div className="flex items-center justify-between">
-          <span className="text-zinc-300 font-bold text-xs text-center uppercase tracking-wider truncate w-full">
+          <span className="text-zinc-300 font-bold text-xs text-center tracking-wider truncate w-full">
             {skin?.displayName || "Unknown Skin"}
           </span>
         </div>

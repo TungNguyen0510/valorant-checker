@@ -33,7 +33,7 @@ export const AccessoryCard = ({
       </div>
 
       <div className="bg-[#1f2326] px-4 py-3 flex items-center justify-between border-t border-zinc-800">
-        <span className="text-zinc-300 font-bold text-[10px] uppercase tracking-wider truncate mr-4">
+        <span className="text-zinc-300 font-bold text-[10px] tracking-wider truncate mr-4">
           {displayName}
         </span>
         {price !== undefined && (

@@ -31,6 +31,10 @@ export async function POST(
     const { accessToken, idToken, ...safeAccount } = account;
     return NextResponse.json(safeAccount);
   } catch (err: any) {
+    console.error('Refresh account error:', err);
+    if (err.message.includes('401')) {
+      return NextResponse.json({ error: 'Riot tokens expired. Please re-add your account.' }, { status: 401 });
+    }
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

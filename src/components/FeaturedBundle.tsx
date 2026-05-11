@@ -12,9 +12,9 @@ interface FeaturedBundleProps {
   onSkinClick: (weapon: any, skin: any) => void
 }
 
-export const FeaturedBundle = ({ 
-  bundles, 
-  bundlesData, 
+export const FeaturedBundle = ({
+  bundles,
+  bundlesData,
   isLoadingBundles,
   weaponsData,
   onSkinClick
@@ -22,7 +22,7 @@ export const FeaturedBundle = ({
   if (!bundles || bundles.length === 0) return null
 
   return (
-    <div className="flex flex-col gap-6 mb-8">
+    <div className="flex flex-col gap-6 mb-4">
       {bundles.map((bundleOffer: any) => {
         const bundleInfo = bundlesData?.find((b: any) => b.uuid === bundleOffer.DataAssetID)
         if (!bundleInfo && !isLoadingBundles) return null
@@ -46,7 +46,7 @@ export const FeaturedBundle = ({
                   <img
                     src={bundleInfo.displayIcon2 || bundleInfo.displayIcon}
                     alt={bundleInfo.displayName}
-                    className="w-full h-auto max-h-[400px] min-h-[200px] object-cover opacity-90"
+                    className="w-full h-auto max-h-[250px] min-h-[200px] object-cover opacity-90"
                   />
                 </div>
 
@@ -76,14 +76,14 @@ export const FeaturedBundle = ({
                 </div>
 
                 {/* Bundle Items */}
-                <div className="p-6 bg-[#0b1219]">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                <div className="p-1 bg-[#0b1219]">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-1">
                     {bundleOffer.Items?.map((item: any) => {
                       const skinId = item.Item.ItemID
-                      const skin = weaponsData?.flatMap((w: any) => w.skins).find((s: any) => 
+                      const skin = weaponsData?.flatMap((w: any) => w.skins).find((s: any) =>
                         s.uuid === skinId || s.levels?.some((l: any) => l.uuid === skinId)
                       )
-                      
+
                       // Skip if not a skin (could be a spray, card, buddy)
                       if (!skin) return null
 
@@ -99,7 +99,7 @@ export const FeaturedBundle = ({
                           price={price}
                           originalPrice={originalPrice}
                           discount={discount}
-                          className="h-[280px]"
+                          className="h-[220px]"
                           onClick={() => skin && weapon && onSkinClick(weapon, skinId)}
                         />
                       )

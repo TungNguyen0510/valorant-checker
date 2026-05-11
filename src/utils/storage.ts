@@ -17,6 +17,17 @@ export async function getAccounts(): Promise<Account[]> {
   }
 }
 
+export async function getAccount(id: string): Promise<Account> {
+  const res = await fetch(`/api/accounts/${id}`);
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    const error = new Error(errData.error || 'Failed to fetch account');
+    (error as any).status = res.status;
+    throw error;
+  }
+  return res.json();
+}
+
 export async function saveAccount(accessToken: string, idToken: string): Promise<Account> {
   const res = await fetch('/api/accounts', {
     method: 'POST',
@@ -24,8 +35,10 @@ export async function saveAccount(accessToken: string, idToken: string): Promise
     body: JSON.stringify({ accessToken, idToken }),
   });
   if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error || 'Failed to save account');
+    const errData = await res.json().catch(() => ({}));
+    const error = new Error(errData.error || 'Failed to save account');
+    (error as any).status = res.status;
+    throw error;
   }
   return res.json();
 }
@@ -35,8 +48,10 @@ export async function refreshAccount(id: string): Promise<Account> {
     method: 'POST',
   });
   if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error || 'Failed to refresh account');
+    const errData = await res.json().catch(() => ({}));
+    const error = new Error(errData.error || 'Failed to refresh account');
+    (error as any).status = res.status;
+    throw error;
   }
   return res.json();
 }

@@ -14,9 +14,9 @@ export const NightMarket = ({ bonusStore, weaponsData, onSkinClick }: NightMarke
   const remainingSeconds = bonusStore.BonusStoreRemainingDurationInSeconds || 0
 
   return (
-    <div className="mt-20">
+    <div className="my-6">
       <div className="flex flex-col items-center mb-10">
-        <h2 className="text-7xl font-black text-[#ffb4b4] italic tracking-tighter uppercase drop-shadow-[0_0_15px_rgba(255,180,180,0.3)]">
+        <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-black text-[#ffb4b4] italic tracking-tighter uppercase drop-shadow-[0_0_15px_rgba(255,180,180,0.3)]">
           NIGHT.MARKET
         </h2>
         {remainingSeconds > 0 && (

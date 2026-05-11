@@ -1,355 +1,66 @@
-'use client'
+import { HeroButton } from "@/components/LandingButtons";
+import { Header } from "@/components/Header";
 
-import { useState, useEffect } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { InstructionSection } from '@/components/InstructionSection'
-import { UserInfoSection } from '@/components/UserInfoSection'
-import { FeaturedBundle } from '@/components/FeaturedBundle'
-import { DailyOffers } from '@/components/DailyOffers'
-import { AccessoryStore } from '@/components/AccessoryStore'
-import { NightMarket } from '@/components/NightMarket'
-import { WeaponLoadout } from '@/components/WeaponLoadout'
-import { SkinSelector } from '@/components/SkinSelector'
-import { AccountSwitcher } from '@/components/AccountSwitcher'
-import { UserButton } from '@clerk/nextjs'
-import * as storage from '@/utils/storage'
-
-export default function HomePage() {
-  const { data: weaponsData, isLoading: isLoadingWeapons } = useQuery({
-    queryKey: ['weapons'],
-    queryFn: async () => {
-      const res = await fetch('https://valorant-api.com/v1/weapons')
-      const json = await res.json()
-      return json.data
-    }
-  })
-
-  const { data: bundlesData, isLoading: isLoadingBundles } = useQuery({
-    queryKey: ['bundles'],
-    queryFn: async () => {
-      const res = await fetch('https://valorant-api.com/v1/bundles')
-      const json = await res.json()
-      return json.data
-    }
-  })
-
-  const { data: playerCardsData } = useQuery({
-    queryKey: ['playerCards'],
-    queryFn: async () => {
-      const res = await fetch('https://valorant-api.com/v1/playercards')
-      const json = await res.json()
-      return json.data
-    }
-  })
-
-  const { data: buddiesData } = useQuery({
-    queryKey: ['buddies'],
-    queryFn: async () => {
-      const res = await fetch('https://valorant-api.com/v1/buddies')
-      const json = await res.json()
-      return json.data
-    }
-  })
-
-  const { data: spraysData } = useQuery({
-    queryKey: ['sprays'],
-    queryFn: async () => {
-      const res = await fetch('https://valorant-api.com/v1/sprays')
-      const json = await res.json()
-      return json.data
-    }
-  })
-
-  const { data: titlesData } = useQuery({
-    queryKey: ['titles'],
-    queryFn: async () => {
-      const res = await fetch('https://valorant-api.com/v1/playertitles')
-      const json = await res.json()
-      return json.data
-    }
-  })
-
-  const [redirectUrl, setRedirectUrl] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<any>(null)
-  const [error, setError] = useState('')
-
-  const [accounts, setAccounts] = useState<storage.Account[]>([])
-  const [activeAccountId, setActiveAccountId] = useState<string | null>(null)
-  const [showAddForm, setShowAddForm] = useState(false)
-  const [selectedWeaponForModal, setSelectedWeaponForModal] = useState<any>(null)
-  const [selectedSkinIdForModal, setSelectedSkinIdForModal] = useState<string | undefined>(undefined)
-
-  const handleSkinClick = (weapon: any, skinId: string) => {
-    setSelectedWeaponForModal(weapon)
-    setSelectedSkinIdForModal(skinId)
-  }
-
-  useEffect(() => {
-    async function init() {
-      // Load from server-side
-      const loadedAccounts = await storage.getAccounts()
-      const activeId = await storage.getActiveAccountId()
-      setAccounts(loadedAccounts)
-
-      if (activeId) {
-        const active = loadedAccounts.find(a => a.id === activeId)
-        if (active) {
-          setActiveAccountId(activeId)
-          setResult(active.data)
-        } else {
-          setShowAddForm(true)
-        }
-      } else if (loadedAccounts.length === 0) {
-        setShowAddForm(true)
-      } else {
-        setActiveAccountId(loadedAccounts[0].id)
-        setResult(loadedAccounts[0].data)
-        await storage.setActiveAccountId(loadedAccounts[0].id)
-      }
-    }
-    init()
-  }, [])
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setResult((prev: any) => {
-        if (!prev || !prev.store) return prev
-
-        const next = JSON.parse(JSON.stringify(prev))
-
-        if (next.store?.SkinsPanelLayout?.SingleItemOffersRemainingDurationInSeconds > 0) {
-          next.store.SkinsPanelLayout.SingleItemOffersRemainingDurationInSeconds -= 1
-        }
-
-        if (next.store?.FeaturedBundle?.Bundles) {
-          next.store.FeaturedBundle.Bundles.forEach((b: any) => {
-            if (b.DurationRemainingInSeconds > 0) {
-              b.DurationRemainingInSeconds -= 1
-            }
-          })
-        }
-
-        if (next.store?.BonusStore?.BonusStoreRemainingDurationInSeconds > 0) {
-          next.store.BonusStore.BonusStoreRemainingDurationInSeconds -= 1
-        }
-
-        // Accessory Store Timer
-        const accStorePaths = [next.store?.AccessoryStorePanel, next.store?.AccessoryStore]
-        accStorePaths.forEach(obj => {
-          if (!obj) return
-          for (const k in obj) {
-            if (k.toLowerCase().includes('durationinseconds') && typeof obj[k] === 'number' && obj[k] > 0) {
-              obj[k] -= 1
-            }
-          }
-        })
-
-        return next
-      })
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [])
-
-  function extractAccessToken(url: string) {
-    try {
-      const hash = url.split('#')[1]
-      if (!hash) throw new Error('Missing URL hash')
-      const params = new URLSearchParams(hash)
-      const accessToken = params.get('access_token')
-      const idToken = params.get('id_token')
-      if (!accessToken) throw new Error('Missing access token')
-      return { accessToken, idToken }
-    } catch (err: any) {
-      throw new Error('Invalid redirect URL')
-    }
-  }
-
-  async function handleGetInfo() {
-    try {
-      setLoading(true)
-      setError('')
-
-      const { accessToken, idToken } = extractAccessToken(redirectUrl)
-
-      const newAccount = await storage.saveAccount(accessToken, idToken || '')
-      await storage.setActiveAccountId(newAccount.id)
-
-      const updatedAccounts = await storage.getAccounts()
-      setAccounts(updatedAccounts)
-      setActiveAccountId(newAccount.id)
-      setResult(newAccount.data)
-      setShowAddForm(false)
-      setRedirectUrl('')
-    } catch (err: any) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  async function handleSelectAccount(id: string) {
-    const account = accounts.find(a => a.id === id)
-    if (account) {
-      setActiveAccountId(id)
-      setResult(account.data)
-      await storage.setActiveAccountId(id)
-      setShowAddForm(false)
-    }
-  }
-
-  async function handleDeleteAccount(id: string) {
-    await storage.deleteAccount(id)
-    const updated = await storage.getAccounts()
-    setAccounts(updated)
-
-    if (activeAccountId === id) {
-      if (updated.length > 0) {
-        await handleSelectAccount(updated[0].id)
-      } else {
-        setActiveAccountId(null)
-        setResult(null)
-        setShowAddForm(true)
-      }
-    }
-  }
-
-  async function handleRefresh() {
-    if (!activeAccountId) return
-    try {
-      setLoading(true)
-      const updatedAccount = await storage.refreshAccount(activeAccountId)
-      setResult(updatedAccount.data)
-      const updatedAccounts = await storage.getAccounts()
-      setAccounts(updatedAccounts)
-    } catch (err: any) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const offers = result?.store?.SkinsPanelLayout?.SingleItemOffers || []
-  const accessoryOffers =
-    result?.store?.AccessoryStorePanel?.AccessoryStoreOffers ||
-    result?.store?.AccessoryStorePanel?.Offers ||
-    result?.store?.AccessoryStorePanel?.AccessoryStoreItems ||
-    result?.store?.AccessoryStore?.AccessoryStoreOffers ||
-    []
-
-  // Helper to get accessory duration
-  const getAccessoryDuration = () => {
-    if (!result) return 0
-    const accPaths = [result.store?.AccessoryStorePanel, result.store?.AccessoryStore]
-    for (const obj of accPaths) {
-      if (!obj) continue
-      for (const k in obj) {
-        if (k.toLowerCase().includes('durationinseconds') && typeof obj[k] === 'number' && obj[k] > 0) {
-          return obj[k]
-        }
-      }
-    }
-    return 0
-  }
+export default async function LandingPage() {
 
   return (
-    <main className="min-h-screen bg-black text-white p-10">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <h1 className="text-5xl font-bold">Valorant Checker</h1>
-          <div className="flex items-center gap-4">
-            <span className="text-zinc-500 text-sm uppercase tracking-widest font-bold">Accounts: {accounts.length}</span>
-            <UserButton />
-          </div>
+    <div className="min-h-screen bg-[#0F1923] text-[#ECE8E1] selection:bg-[#FF4655] selection:text-white overflow-hidden relative">
+      {/* Background Decorative Elements */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-full h-full bg-[#FF4655]/10 blur-[120px] rounded-full" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-full h-full bg-[#FF4655]/5 blur-[120px] rounded-full" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full opacity-5 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
+      </div>
+
+      <Header showLandingButtons />
+
+      {/* Hero Section */}
+      <main className="relative z-10 flex flex-col items-center justify-center min-h-[calc(100-80px)] text-center px-4 pt-20 pb-32">
+        <div className="relative inline-block mb-4">
+          <span className="block text-[#FF4655] font-black tracking-[0.5em] uppercase text-sm mb-4 animate-pulse">
+            Protocol: Access Granted
+          </span>
+          <h1 className="text-6xl md:text-8xl font-black italic uppercase tracking-tighter mb-6 px-2">
+            Track Your <br />
+            <span className="text-transparent bg-clip-text bg-linear-to-r from-[#FF4655] to-[#ff7d87] px-2">
+              Valorant Accounts
+            </span>
+          </h1>
+
+          {/* Geometric lines */}
+          <div className="absolute -left-12 top-1/2 -translate-y-1/2 w-8 h-[2px] bg-[#FF4655] hidden md:block" />
+          <div className="absolute -right-12 top-1/2 -translate-y-1/2 w-8 h-[2px] bg-[#FF4655] hidden md:block" />
         </div>
 
-        <AccountSwitcher
-          accounts={accounts}
-          activeAccountId={activeAccountId}
-          onSelect={handleSelectAccount}
-          onAdd={() => setShowAddForm(true)}
-          onDelete={handleDeleteAccount}
-          playerCardsData={playerCardsData}
-        />
+        <p className="max-w-2xl text-lg text-[#ECE8E1]/60 mb-12 leading-relaxed">
+          Check your daily store rotation, Night Market deals, collections, and detailed match history.
+        </p>
 
-        {showAddForm && (
-          <InstructionSection
-            redirectUrl={redirectUrl}
-            setRedirectUrl={setRedirectUrl}
-            handleGetInfo={handleGetInfo}
-            loading={loading}
-            error={error}
-          />
-        )}
+        <HeroButton />
 
-        {result && (
-          <div className="mt-10">
-            <UserInfoSection
-              result={result}
-              playerCardsData={playerCardsData}
-              titlesData={titlesData}
-              onRefresh={handleRefresh}
-              loading={loading}
-            />
+        {/* Features Grid */}
+        <div className="mt-32 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl w-full px-4">
+          {[
+            { title: "Daily Store", desc: "View your personal skin rotation without opening the game.", icon: "M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" },
+            { title: "Night Market", desc: "Reveal your limited-time discounts as soon as they drop.", icon: "M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" },
+            { title: "Collections", desc: "Track your owned skins and know which ones are missing.", icon: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" },
+            { title: "Match History", desc: "Analyze your performance, K/D ratio, and match outcomes.", icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" }
+          ].map((feature, idx) => (
+            <div key={idx} className="p-8 bg-white/5 border border-white/10 hover:border-[#FF4655]/50 transition-all duration-300 group">
+              <div className="w-12 h-12 bg-[#FF4655]/10 flex items-center justify-center mb-6 group-hover:bg-[#FF4655] transition-colors">
+                <svg className="w-6 h-6 text-[#FF4655] group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={feature.icon} />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold uppercase italic mb-3">{feature.title}</h3>
+              <p className="text-[#ECE8E1]/50 text-sm leading-relaxed">{feature.desc}</p>
+            </div>
+          ))}
+        </div>
+      </main>
 
-            <h2 className="text-2xl font-bold mb-4 mt-8 text-white">Daily Store</h2>
-
-            <FeaturedBundle
-              bundles={result.store?.FeaturedBundle?.Bundles}
-              bundlesData={bundlesData}
-              isLoadingBundles={isLoadingBundles}
-              weaponsData={weaponsData}
-              onSkinClick={handleSkinClick}
-            />
-
-            <DailyOffers
-              offers={offers}
-              weaponsData={weaponsData}
-              isLoadingWeapons={isLoadingWeapons}
-              remainingDuration={result.store?.SkinsPanelLayout?.SingleItemOffersRemainingDurationInSeconds || 0}
-              storeOffers={result.store?.SkinsPanelLayout?.SingleItemStoreOffers}
-              onSkinClick={handleSkinClick}
-            />
-
-            <AccessoryStore
-              accessoryOffers={accessoryOffers}
-              playerCardsData={playerCardsData}
-              buddiesData={buddiesData}
-              spraysData={spraysData}
-              titlesData={titlesData}
-              remainingDuration={getAccessoryDuration()}
-            />
-
-            <NightMarket
-              bonusStore={result.store?.BonusStore}
-              weaponsData={weaponsData}
-              onSkinClick={handleSkinClick}
-            />
-
-            <WeaponLoadout
-              loadout={result.loadout}
-              weaponsData={weaponsData}
-              buddiesData={buddiesData}
-              onWeaponClick={(weapon) => {
-                setSelectedWeaponForModal(weapon)
-                setSelectedSkinIdForModal(undefined)
-              }}
-            />
-
-            {selectedWeaponForModal && (
-              <SkinSelector
-                weapon={selectedWeaponForModal}
-                ownedSkins={result.ownedSkins}
-                loadout={result.loadout}
-                onClose={() => {
-                  setSelectedWeaponForModal(null)
-                  setSelectedSkinIdForModal(undefined)
-                }}
-                initialSkinId={selectedSkinIdForModal}
-              />
-            )}
-          </div>
-        )}
-      </div>
-    </main>
-  )
+      {/* Footer Decoration */}
+      <div className="absolute bottom-0 left-0 w-full h-px bg-linear-to-r from-transparent via-[#FF4655]/50 to-transparent" />
+    </div>
+  );
 }

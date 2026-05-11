@@ -3,6 +3,30 @@ import { auth } from '@clerk/nextjs/server';
 import * as db from '@/lib/db';
 import { getValorantData } from '@/lib/valorant';
 
+function summarizeAccount(account: any) {
+  const { accessToken, idToken, data, ...rest } = account;
+  
+  // Create a minimal version of data for list view
+  const summaryData = data ? {
+    affinity: data.affinity,
+    puuid: data.puuid,
+    user: data.user,
+    wallet: data.wallet,
+    loadout: {
+      Identity: data.loadout?.Identity,
+    },
+    rank: data.rank ? {
+      LatestCompetitiveUpdate: data.rank.LatestCompetitiveUpdate,
+    } : null,
+  } : null;
+
+  return {
+    ...rest,
+    data: summaryData,
+    isSummary: true
+  };
+}
+
 export async function GET() {
   const { userId } = await auth();
   if (!userId) {
@@ -10,7 +34,7 @@ export async function GET() {
   }
 
   const accounts = await db.getAccounts(userId);
-  const safeAccounts = accounts.map(({ accessToken, idToken, ...rest }) => rest);
+  const safeAccounts = accounts.map(summarizeAccount);
   return NextResponse.json(safeAccounts);
 }
 
@@ -51,10 +75,14 @@ export async function POST(request: Request) {
     
     await db.saveAccounts(userId, accounts);
     
-    // Return safe version
+    // Return full version for POST (immediate use) but filter tokens
     const { accessToken: _, idToken: __, ...safeAccount } = newAccount;
     return NextResponse.json(safeAccount);
   } catch (err: any) {
+    console.error('Add account error:', err);
+    if (err.message.includes('401')) {
+      return NextResponse.json({ error: 'Riot tokens invalid or expired. Please authorize again.' }, { status: 401 });
+    }
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

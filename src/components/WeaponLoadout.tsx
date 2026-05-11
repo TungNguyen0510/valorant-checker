@@ -1,8 +1,7 @@
 'use client'
 
 /* eslint-disable @next/next/no-img-element */
-import { WEAPON_COLUMNS, TIER_RANKS, TIER_ICONS, TIER_STYLES } from '@/constants/valorant'
-import { VPIcon } from './Icons'
+import { WEAPON_COLUMNS, TIER_ICONS, TIER_STYLES } from '@/constants/valorant'
 
 interface WeaponLoadoutProps {
   loadout: any
@@ -54,11 +53,7 @@ export const WeaponLoadout = ({
   }
 
   return (
-    <div className="mt-12 mb-12">
-      <div className="flex items-center justify-between mb-8">
-        <h2 className="text-3xl font-black italic tracking-tighter text-white uppercase">Your Collection</h2>
-      </div>
-
+    <div className="my-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12">
         {WEAPON_COLUMNS.map((column) => (
           <div key={column.id} className="flex flex-col gap-12">
@@ -80,7 +75,8 @@ export const WeaponLoadout = ({
                       <div
                         key={weapon.uuid}
                         onClick={() => onWeaponClick(weapon)}
-                        className={`group relative bg-zinc-900/40 border border-zinc-800 hover:bg-zinc-800/40 transition-all duration-300 cursor-pointer p-4 h-[140px] flex flex-col justify-between overflow-hidden
+                        className={`group relative bg-zinc-900/40 border border-zinc-800 hover:bg-zinc-800/40 transition-all duration-300 cursor-pointer p-4 flex flex-col justify-between overflow-hidden
+                          ${category.weapons.length > 5 ? 'h-[127.3px]' : 'h-[140px]'}
                           ${skin?.contentTierUuid === '411e4a55-4e59-7757-41f0-86a53f101bb5' ? 'hover:border-orange-500/50' :
                             skin?.contentTierUuid === 'e046854e-406c-37f4-6607-19a9ba8426fc' ? 'hover:border-yellow-500/50' :
                               skin?.contentTierUuid === '60bca009-4182-7998-dee7-b8a2558dc369' ? 'hover:border-pink-500/50' :
@@ -92,7 +88,7 @@ export const WeaponLoadout = ({
                           <img
                             src={skin?.equippedChroma?.fullRender || skin?.equippedLevel?.displayIcon || skin?.chromas?.[0].displayIcon || skin?.levels?.[0].displayIcon || weapon.displayIcon}
                             alt={weapon.displayName}
-                            className={`w-full h-auto max-h-16 object-contain transform transition-transform duration-500 group-hover:scale-110 ${isMelee ? 'rotate-45 scale-125' : ''}`}
+                            className={`w-full h-auto ${category.weapons.length > 5 ? 'max-h-13' : 'max-h-16'} object-contain transform transition-transform duration-500 group-hover:scale-110 ${isMelee ? 'rotate-45 scale-125' : ''}`}
                           />
 
                           {/* Buddy Icon */}
@@ -112,7 +108,7 @@ export const WeaponLoadout = ({
                           <div className="text-[10px] text-zinc-500 font-bold tracking-widest leading-none">
                             {weapon.displayName}
                           </div>
-                          <div className="text-[11px] text-white font-black truncate max-w-[80%]">
+                          <div className="text-[11px] text-white font-bold truncate max-w-[80%]">
                             {skin?.displayName || 'Standard'}
                           </div>
                         </div>

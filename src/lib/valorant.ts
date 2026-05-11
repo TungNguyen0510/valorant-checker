@@ -23,7 +23,10 @@ async function getUser(accessToken: string) {
     headers: { Authorization: `Bearer ${accessToken}` },
     cache: 'no-store',
   })
-  if (!resp.ok) throw new Error('Failed to fetch user info')
+  if (!resp.ok) {
+    const text = await resp.text();
+    throw new Error(`Failed to fetch user info: ${resp.status} ${text}`);
+  }
   return resp.json()
 }
 
@@ -34,7 +37,10 @@ async function getEntitlements(accessToken: string) {
     body: JSON.stringify({}),
     cache: 'no-store',
   })
-  if (!resp.ok) throw new Error('Failed to fetch entitlements')
+  if (!resp.ok) {
+    const text = await resp.text();
+    throw new Error(`Failed to fetch entitlements: ${resp.status} ${text}`);
+  }
   const json = await resp.json()
   return json.entitlements_token
 }
@@ -48,7 +54,7 @@ async function getAffinity(accessToken: string, idToken: string) {
   })
   const text = await resp.text()
   let json: any = {}
-  try { json = JSON.parse(text) } catch {}
+  try { json = JSON.parse(text) } catch { }
   const affinity = json?.affinities?.live
   if (!affinity) throw new Error(`Failed to get affinity: ${text}`)
   return affinity
@@ -70,7 +76,7 @@ async function fetchStorefront(puuid: string, accessToken: string, entitlements:
     })
     const text = await resp.text()
     let data: any = text
-    try { data = JSON.parse(text) } catch {}
+    try { data = JSON.parse(text) } catch { }
     return { ok: resp.ok, status: resp.status, data }
   } catch (err: any) {
     return { ok: false, status: 500, data: { error: err.message } }
@@ -116,6 +122,58 @@ async function fetchPlayerLoadout(puuid: string, accessToken: string, entitlemen
   return resp.ok ? resp.json() : null
 }
 
+async function fetchRank(puuid: string, accessToken: string, entitlements: string, version: string, affinity: string) {
+  const resp = await fetch(`https://pd.${affinity}.a.pvp.net/mmr/v1/players/${puuid}`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'X-Riot-Entitlements-JWT': entitlements,
+      'X-Riot-ClientPlatform': CLIENT_PLATFORM,
+      'X-Riot-ClientVersion': version,
+    },
+    cache: 'no-store',
+  })
+  return resp.ok ? resp.json() : null
+}
+
+async function fetchMatchHistory(puuid: string, accessToken: string, entitlements: string, version: string, affinity: string) {
+  const resp = await fetch(`https://pd.${affinity}.a.pvp.net/match-history/v1/history/${puuid}?startIndex=0&endIndex=20`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'X-Riot-Entitlements-JWT': entitlements,
+      'X-Riot-ClientPlatform': CLIENT_PLATFORM,
+      'X-Riot-ClientVersion': version,
+    },
+    cache: 'no-store',
+  })
+  return resp.ok ? resp.json() : null
+}
+
+async function fetchCompetitiveUpdates(puuid: string, accessToken: string, entitlements: string, version: string, affinity: string) {
+  const resp = await fetch(`https://pd.${affinity}.a.pvp.net/mmr/v1/players/${puuid}/competitiveupdates?startIndex=0&endIndex=20`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'X-Riot-Entitlements-JWT': entitlements,
+      'X-Riot-ClientPlatform': CLIENT_PLATFORM,
+      'X-Riot-ClientVersion': version,
+    },
+    cache: 'no-store',
+  })
+  return resp.ok ? resp.json() : null
+}
+
+async function fetchMatchDetails(matchId: string, accessToken: string, entitlements: string, version: string, affinity: string) {
+  const resp = await fetch(`https://pd.${affinity}.a.pvp.net/match-details/v1/matches/${matchId}`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'X-Riot-Entitlements-JWT': entitlements,
+      'X-Riot-ClientPlatform': CLIENT_PLATFORM,
+      'X-Riot-ClientVersion': version,
+    },
+    cache: 'force-cache',
+  })
+  return resp.ok ? resp.json() : null
+}
+
 export async function getValorantData(accessToken: string, idToken: string) {
   const [user, entitlements, version] = await Promise.all([
     getUser(accessToken),
@@ -125,14 +183,30 @@ export async function getValorantData(accessToken: string, idToken: string) {
 
   const puuid = user.sub
   let affinity = ''
-  try { affinity = await getAffinity(accessToken, idToken) } catch {}
+  try {
+    affinity = await getAffinity(accessToken, idToken)
+    const regionMap: Record<string, string> = {
+      'vn': 'ap', 'th': 'ap', 'ph': 'ap', 'my': 'ap', 'sg': 'ap', 'tw': 'ap', 'jp': 'ap', 'id': 'ap',
+      'kr': 'kr',
+      'eu': 'eu', 'tr': 'eu', 'ru': 'eu',
+      'na': 'na', 'us': 'na', 'ca': 'na',
+      'br': 'br',
+      'latam': 'latam', 'mx': 'latam', 'cl': 'latam', 'ar': 'latam',
+    }
+    affinity = regionMap[affinity.toLowerCase()] || affinity
+  } catch (err: any) {
+    console.warn('Failed to get affinity from Riot Geo API:', err.message);
+  }
 
   let storefront = await fetchStorefront(puuid, accessToken, entitlements, version, affinity)
-  
+
   if (!storefront.ok) {
-    for (const region of ['ap', 'eu', 'na', 'kr']) {
+    console.warn(`Failed to fetch storefront for affinity ${affinity}, status: ${storefront.status}. Trying other regions...`);
+    for (const region of ['ap', 'eu', 'na', 'kr', 'latam', 'br']) {
+      if (region === affinity) continue
       const res = await fetchStorefront(puuid, accessToken, entitlements, version, region)
       if (res.ok) {
+        console.info(`Found working region: ${region}`);
         affinity = region
         storefront = res
         break
@@ -140,17 +214,30 @@ export async function getValorantData(accessToken: string, idToken: string) {
     }
   }
 
-  if (!storefront.ok) throw new Error('Failed to fetch storefront')
+  if (!storefront.ok) {
+    console.error('All regions failed for storefront fetch. Last error data:', storefront.data);
+    throw new Error(`Failed to fetch storefront: ${storefront.status} ${JSON.stringify(storefront.data)}`)
+  }
 
-  const [wallet, entitlementsRes, loadout] = await Promise.all([
+  const [wallet, entitlementsRes, loadout, rank, matchHistory, competitiveUpdates] = await Promise.all([
     fetchWallet(puuid, accessToken, entitlements, version, affinity),
     fetchEntitlements(puuid, accessToken, entitlements, version, affinity),
     fetchPlayerLoadout(puuid, accessToken, entitlements, version, affinity),
+    fetchRank(puuid, accessToken, entitlements, version, affinity),
+    fetchMatchHistory(puuid, accessToken, entitlements, version, affinity),
+    fetchCompetitiveUpdates(puuid, accessToken, entitlements, version, affinity),
   ])
+
+  // Fetch match details for the last 30 matches
+  const matchDetails = await Promise.all(
+    (matchHistory?.History || []).map((m: any) =>
+      fetchMatchDetails(m.MatchID, accessToken, entitlements, version, affinity)
+    )
+  )
 
   let ownedSkins: string[] = []
   if (entitlementsRes?.EntitlementsByTypes) {
-    ownedSkins = entitlementsRes.EntitlementsByTypes.flatMap((type: any) => 
+    ownedSkins = entitlementsRes.EntitlementsByTypes.flatMap((type: any) =>
       type.Entitlements.map((item: any) => item.ItemID)
     )
   }
@@ -164,5 +251,9 @@ export async function getValorantData(accessToken: string, idToken: string) {
     wallet,
     ownedSkins,
     loadout,
+    rank,
+    matchHistory,
+    competitiveUpdates,
+    matchDetails,
   }
 }

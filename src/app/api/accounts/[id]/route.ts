@@ -2,6 +2,28 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import * as db from '@/lib/db';
 
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { id } = await params;
+  const accounts = await db.getAccounts(userId);
+  const account = accounts.find((a) => a.id === id);
+
+  if (!account) {
+    return NextResponse.json({ error: 'Account not found' }, { status: 404 });
+  }
+
+  // Return full data but strip tokens
+  const { accessToken, idToken, ...safeAccount } = account;
+  return NextResponse.json(safeAccount);
+}
+
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

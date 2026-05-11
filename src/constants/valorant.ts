@@ -25,32 +25,32 @@ export const TIER_ICONS: Record<string, string> = {
 export const DEFAULT_STYLE = 'bg-gradient-to-t from-zinc-700/20 to-transparent'
 
 export const WEAPON_COLUMNS = [
-  { 
-    id: 'col1', 
+  {
+    id: 'col1',
     categories: [
-      { id: 'sidearms', name: 'SIDEARMS', weapons: ['Classic', 'Shorty', 'Frenzy', 'Ghost', 'Sheriff'] }
-    ] 
+      { id: 'sidearms', name: 'SIDEARMS', weapons: ['Classic', 'Shorty', 'Frenzy', 'Ghost', 'Bandit', 'Sheriff'] }
+    ]
   },
-  { 
-    id: 'col2', 
+  {
+    id: 'col2',
     categories: [
       { id: 'smgs', name: 'SMGS', weapons: ['Stinger', 'Spectre'] },
       { id: 'shotguns', name: 'SHOTGUNS', weapons: ['Bucky', 'Judge'] }
-    ] 
+    ]
   },
-  { 
-    id: 'col3', 
+  {
+    id: 'col3',
     categories: [
       { id: 'rifles', name: 'RIFLES', weapons: ['Bulldog', 'Guardian', 'Phantom', 'Vandal'] },
       { id: 'melee', name: 'MELEE', weapons: ['Melee'] }
-    ] 
+    ]
   },
-  { 
-    id: 'col4', 
+  {
+    id: 'col4',
     categories: [
       { id: 'snipers', name: 'SNIPER RIFLES', weapons: ['Marshal', 'Outlaw', 'Operator'] },
       { id: 'heavy', name: 'MACHINE GUNS', weapons: ['Ares', 'Odin'] }
-    ] 
+    ]
   },
 ]
 
