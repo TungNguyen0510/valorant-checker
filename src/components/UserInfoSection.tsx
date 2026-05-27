@@ -9,6 +9,7 @@ interface UserInfoSectionProps {
   titlesData: any[] | undefined
   onRefresh?: () => void
   loading?: boolean
+  onPlayerCardClick?: () => void
 }
 
 export const UserInfoSection = ({
@@ -16,7 +17,8 @@ export const UserInfoSection = ({
   playerCardsData,
   titlesData,
   onRefresh,
-  loading
+  loading,
+  onPlayerCardClick
 }: UserInfoSectionProps) => {
   const playerCardId = result.loadout?.Identity?.PlayerCardID
   const card = playerCardsData?.find((c: any) => c.uuid === playerCardId)
@@ -32,7 +34,8 @@ export const UserInfoSection = ({
             <img
               src={card.smallArt || card.displayIcon}
               alt="Card"
-              className="w-8 h-8 rounded border border-white/10 object-cover"
+              onClick={onPlayerCardClick}
+              className={`w-8 h-8 rounded border border-white/10 object-cover ${onPlayerCardClick ? 'cursor-pointer hover:opacity-85 active:scale-95 transition-all' : ''}`}
             />
           )}
           <div className="flex flex-col">

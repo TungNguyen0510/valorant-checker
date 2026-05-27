@@ -1,6 +1,6 @@
 'use client'
 
-type TabId = 'store' | 'accessories' | 'nightmarket' | 'collection' | 'history'
+type TabId = 'store' | 'accessories' | 'nightmarket' | 'collection' | 'history' | 'skins' | 'builder'
 
 interface Tab {
   id: TabId
@@ -20,7 +20,9 @@ export const DashboardTabs = ({
   showNightMarket,
 }: DashboardTabsProps) => {
   const tabs: Tab[] = [
-    { id: 'collection', label: 'Your Collection' },
+    { id: 'collection', label: 'Inventory' },
+    { id: 'builder', label: 'Inventory Builder' },
+    { id: 'skins', label: 'Owned Skins' },
     { id: 'store', label: 'Daily Store' },
     { id: 'accessories', label: 'Accessories' },
     { id: 'nightmarket', label: 'Night Market', show: showNightMarket },

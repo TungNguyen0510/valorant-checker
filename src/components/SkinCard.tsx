@@ -126,7 +126,7 @@ export const SkinCard = ({
           {price !== undefined && (
             <div className="flex items-center gap-1.5 shrink-0 text-zinc-300 font-bold">
               <VPIcon className="w-3.5 h-3.5" />
-              <span className="text-sm">{price === 0 ? "FREE" : price.toLocaleString()}</span>
+              <span className="text-sm">{price.toLocaleString()}</span>
             </div>
           )}
         </div>

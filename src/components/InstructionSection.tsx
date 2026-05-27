@@ -10,6 +10,9 @@ interface InstructionSectionProps {
   loading: boolean
   error: string
   onClose: () => void
+  title?: string
+  submitText?: string
+  reauthAccountName?: string
 }
 
 export const InstructionSection = ({
@@ -18,17 +21,33 @@ export const InstructionSection = ({
   handleGetInfo,
   loading,
   error,
-  onClose
+  onClose,
+  title = "Add Valorant Account",
+  submitText = "Add Account",
+  reauthAccountName
 }: InstructionSectionProps) => {
   return (
     <BaseDialog
       isOpen={true}
       onClose={onClose}
-      title="Add Valorant Account"
+      title={title}
       description="Step-by-step Guide"
       maxWidth="2xl"
     >
       <div className="p-8 space-y-6">
+        {reauthAccountName && (
+          <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl flex items-start gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500 flex-none mt-0.5">
+              <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+              <line x1="12" x2="12" y1="9" y2="13"/>
+              <line x1="12" x2="12.01" y1="17" y2="17"/>
+            </svg>
+            <div className="text-sm font-bold text-amber-500 leading-normal">
+              Re-authenticating account: <span className="text-white underline decoration-amber-500/30 decoration-2 underline-offset-4">{reauthAccountName}</span>. Please make sure you login with the correct Riot account.
+            </div>
+          </div>
+        )}
+
         <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl p-6 space-y-4">
           <ol className="space-y-4 text-sm">
             <li className="flex gap-4">
@@ -107,7 +126,7 @@ export const InstructionSection = ({
                 Processing...
               </>
             ) : (
-              'Add Account'
+              submitText
             )}
           </button>
         </div>

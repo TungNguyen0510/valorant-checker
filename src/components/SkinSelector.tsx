@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 /* eslint-disable @next/next/no-img-element */
 import { BaseDialog } from './BaseDialog'
-import { DEFAULT_STYLE, TIER_ICONS, TIER_RANKS, TIER_STYLES } from '@/constants/valorant'
+import { TIER_ICONS, TIER_RANKS } from '@/constants/valorant'
 
 interface SkinSelectorProps {
   weapon: any
@@ -29,8 +29,6 @@ export const SkinSelector = ({
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
-
-  // ... (rest of state logic remains the same)
 
   // All skins for this weapon, sorted by tier
   const allWeaponSkins = [...weapon.skins].sort((a: any, b: any) => {
@@ -127,12 +125,6 @@ export const SkinSelector = ({
   if (!selectedSkin) return null
 
   const equippedForThisWeapon = loadout.Guns?.find((g: any) => g.ID?.toLowerCase() === weapon.uuid.toLowerCase())
-  const isCurrentlyEquipped = equippedForThisWeapon &&
-    equippedForThisWeapon.SkinID?.toLowerCase() === selectedSkin.uuid.toLowerCase() &&
-    equippedForThisWeapon.ChromaID?.toLowerCase() === selectedChroma?.uuid.toLowerCase() &&
-    equippedForThisWeapon.LevelID?.toLowerCase() === selectedLevel?.uuid.toLowerCase()
-
-  const cardStyle = selectedSkin.contentTierUuid ? TIER_STYLES[selectedSkin.contentTierUuid] || DEFAULT_STYLE : DEFAULT_STYLE
 
   return (
     <BaseDialog
@@ -200,7 +192,7 @@ export const SkinSelector = ({
               )}
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 gap-3 scrollbar-thin scrollbar-thumb-zinc-800 hover:scrollbar-thumb-zinc-700 transition-colors auto-rows-max">
+          <div className="flex-1 overflow-y-auto p-4 grid grid-cols-3 gap-3 scrollbar-thin scrollbar-thumb-zinc-800 hover:scrollbar-thumb-zinc-700 transition-colors auto-rows-max">
             {filteredSkins.map((skin: any) => {
               const isSelected = selectedSkin.uuid === skin.uuid
               const isEquipped = equippedForThisWeapon?.SkinID?.toLowerCase() === skin.uuid.toLowerCase()
@@ -214,16 +206,17 @@ export const SkinSelector = ({
                     setSelectedLevel(skin.levels?.[skin.levels.length - 1])
                     setSelectedChroma(skin.chromas?.[0])
                   }}
-                  className={`relative flex flex-col p-2.5 rounded border transition-all duration-300 cursor-pointer group ${isSelected
+                  className={`relative flex flex-col border transition-all duration-300 cursor-pointer group ${isSelected
                     ? 'bg-teal-500/10 border-teal-500 shadow-[0_0_20px_rgba(20,184,166,0.15)] z-10'
                     : 'bg-zinc-900/40 border-zinc-800/50 hover:border-zinc-700 hover:bg-zinc-800/30'
                     } ${!owned ? 'opacity-50' : ''}`}
                 >
                   {/* Weapon Preview Area */}
-                  <div className="aspect-4/3 flex items-center justify-center bg-black/40 rounded-sm border border-white/5 overflow-hidden group-hover:border-teal-500/30 transition-all relative mb-2">
+                  <div className="aspect-4/3 flex items-center justify-center bg-black/40 border border-white/5 overflow-hidden transition-all relative mb-2">
                     <img
                       src={skin.chromas?.[0]?.fullRender || skin.displayIcon || skin.levels?.[0]?.displayIcon}
                       alt={skin.displayName}
+                      loading="lazy"
                       className={`w-[130%] h-auto max-w-none object-contain transition-transform duration-500 group-hover:scale-110 rotate-25 drop-shadow-[0_8px_16px_rgba(0,0,0,0.5)] ${weapon.displayName === 'Melee' ? 'rotate-0' : ''}`}
                     />
 
@@ -243,8 +236,8 @@ export const SkinSelector = ({
                   </div>
 
                   {/* Info Area */}
-                  <div className="px-1 space-y-1">
-                    <div className={`text-[10px] font-black uppercase tracking-tight line-clamp-1 leading-none ${isSelected ? 'text-teal-400' : 'text-zinc-400 group-hover:text-zinc-200'}`}>
+                  <div className="px-2 py-1 space-y-1">
+                    <div className={`text-[10px] font-black tracking-tight line-clamp-1 leading-none ${isSelected ? 'text-teal-400' : 'text-zinc-400 group-hover:text-zinc-200'}`}>
                       {skin.displayName.replace(weapon.displayName, '').trim() || skin.displayName}
                     </div>
                     {skin.contentTierUuid && (

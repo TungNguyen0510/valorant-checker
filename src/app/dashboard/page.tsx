@@ -10,8 +10,14 @@ import { DailyOffers } from '@/components/DailyOffers'
 import { AccessoryStore } from '@/components/AccessoryStore'
 import { NightMarket } from '@/components/NightMarket'
 import { WeaponLoadout } from '@/components/WeaponLoadout'
+import { OwnedSkinsGrid } from '@/components/OwnedSkinsGrid'
 import { SkinSelector } from '@/components/SkinSelector'
+import { PlayerCardSelector } from '@/components/PlayerCardSelector'
 import { MatchHistory } from '@/components/MatchHistory'
+import { VirtualWeaponLoadout } from '@/components/VirtualWeaponLoadout'
+import { VirtualSkinSelector } from '@/components/VirtualSkinSelector'
+import { VirtualPlayerCardSelector } from '@/components/VirtualPlayerCardSelector'
+import { BaseDialog } from '@/components/BaseDialog'
 import * as storage from '@/utils/storage'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -25,6 +31,32 @@ export default function HomePage() {
       return json.data
     }
   })
+
+  const { data: skinPricesData } = useQuery({
+    queryKey: ['skinPrices'],
+    queryFn: async () => {
+      try {
+        const res = await fetch('https://vinfo-api.com/json/weaponSkins')
+        const json = await res.json()
+        const priceMap: Record<string, number> = {}
+        if (Array.isArray(json)) {
+          json.forEach((skin: any) => {
+            if (skin.id && skin.price) {
+              const vpPrice = skin.price['85ad13f7-3d1b-5128-9eb2-7cd8ee0b5741']
+              if (typeof vpPrice === 'number') {
+                priceMap[skin.id.toLowerCase()] = vpPrice
+              }
+            }
+          })
+        }
+        return priceMap
+      } catch (e) {
+        console.error('Failed to fetch weapon skin prices:', e)
+        return {}
+      }
+    }
+  })
+
 
   const { data: bundlesData, isLoading: isLoadingBundles } = useQuery({
     queryKey: ['bundles'],
@@ -107,6 +139,15 @@ export default function HomePage() {
     }
   })
 
+  const { data: contractsData } = useQuery({
+    queryKey: ['contracts'],
+    queryFn: async () => {
+      const res = await fetch('https://valorant-api.com/v1/contracts')
+      const json = await res.json()
+      return json.data
+    }
+  })
+
   const [redirectUrl, setRedirectUrl] = useState('')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<any>(null)
@@ -115,13 +156,119 @@ export default function HomePage() {
   const [accounts, setAccounts] = useState<storage.Account[]>([])
   const [activeAccountId, setActiveAccountId] = useState<string | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
-  const [activeTab, setActiveTab] = useState<'store' | 'accessories' | 'nightmarket' | 'collection' | 'history'>('store')
+  const [reauthAccountId, setReauthAccountId] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'store' | 'accessories' | 'nightmarket' | 'collection' | 'history' | 'skins' | 'builder'>('store')
   const [selectedWeaponForModal, setSelectedWeaponForModal] = useState<any>(null)
   const [selectedSkinIdForModal, setSelectedSkinIdForModal] = useState<string | undefined>(undefined)
+  const [showPlayerCardModal, setShowPlayerCardModal] = useState(false)
+
+  // Virtual loadout states
+  const [virtualLoadout, setVirtualLoadout] = useState<any>(null)
+  const [selectedVirtualWeaponForModal, setSelectedVirtualWeaponForModal] = useState<any>(null)
+  const [showVirtualPlayerCardModal, setShowVirtualPlayerCardModal] = useState(false)
+  const [showResetConfirmModal, setShowResetConfirmModal] = useState(false)
 
   const handleSkinClick = (weapon: any, skinId: string) => {
     setSelectedWeaponForModal(weapon)
     setSelectedSkinIdForModal(skinId)
+  }
+
+  // Load virtual loadout from local storage on client side mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('valorant_virtual_loadout')
+      if (saved) {
+        try {
+          setVirtualLoadout(JSON.parse(saved))
+        } catch (e) {
+          console.error('Failed to parse virtual loadout', e)
+        }
+      } else {
+        const defaultLoadout = {
+          Guns: [],
+          Identity: {
+            PlayerCardID: '9fb348bc-41a1-47ec-a943-43b5088e2db6', // Standard card
+            PlayerName: 'VIRTUAL_USER',
+            PlayerTag: 'VIRTUAL'
+          }
+        }
+        setVirtualLoadout(defaultLoadout)
+        localStorage.setItem('valorant_virtual_loadout', JSON.stringify(defaultLoadout))
+      }
+    }
+  }, [])
+
+  const handleEquipVirtualSkin = (
+    skinId: string,
+    chromaId: string,
+    levelId: string,
+    buddyId: string | null,
+    buddyLevelId: string | null
+  ) => {
+    if (!virtualLoadout || !selectedVirtualWeaponForModal) return
+    const weaponId = selectedVirtualWeaponForModal.uuid
+
+    const newGuns = [...(virtualLoadout.Guns || [])]
+    const existingIdx = newGuns.findIndex((g: any) => g.ID.toLowerCase() === weaponId.toLowerCase())
+
+    const gunData = {
+      ID: weaponId,
+      SkinID: skinId,
+      ChromaID: chromaId,
+      LevelID: levelId,
+      CharmID: buddyId,
+      CharmLevelID: buddyLevelId
+    }
+
+    if (existingIdx >= 0) {
+      newGuns[existingIdx] = gunData
+    } else {
+      newGuns.push(gunData)
+    }
+
+    const updatedLoadout = {
+      ...virtualLoadout,
+      Guns: newGuns
+    }
+
+    setVirtualLoadout(updatedLoadout)
+    localStorage.setItem('valorant_virtual_loadout', JSON.stringify(updatedLoadout))
+    toast.success(`Equipped skin for ${selectedVirtualWeaponForModal.displayName} virtually!`)
+  }
+
+  const handleEquipVirtualIdentity = (cardId: string, name: string, tag: string) => {
+    if (!virtualLoadout) return
+
+    const updatedLoadout = {
+      ...virtualLoadout,
+      Identity: {
+        PlayerCardID: cardId,
+        PlayerName: name,
+        PlayerTag: tag
+      }
+    }
+
+    setVirtualLoadout(updatedLoadout)
+    localStorage.setItem('valorant_virtual_loadout', JSON.stringify(updatedLoadout))
+    toast.success('Equipped player identity virtually!')
+  }
+
+  const handleResetVirtualLoadout = () => {
+    setShowResetConfirmModal(true)
+  }
+
+  const performResetVirtualLoadout = () => {
+    const defaultLoadout = {
+      Guns: [],
+      Identity: {
+        PlayerCardID: '9fb348bc-41a1-47ec-a943-43b5088e2db6', // Standard card
+        PlayerName: 'VIRTUAL_USER',
+        PlayerTag: 'VIRTUAL'
+      }
+    }
+    setVirtualLoadout(defaultLoadout)
+    localStorage.setItem('valorant_virtual_loadout', JSON.stringify(defaultLoadout))
+    toast.success('Inventory Builder loadout reset to standard default!')
   }
 
   useEffect(() => {
@@ -142,8 +289,9 @@ export default function HomePage() {
               setAccounts(prev => prev.map(a => a.id === activeId ? full : a))
             } catch (err: any) {
               if (err.status === 401) {
-                toast.error('Session expired, removing account...')
-                await handleDeleteAccount(activeId)
+                toast.error('Session expired. Please re-authenticate.')
+                setReauthAccountId(activeId)
+                setShowAddForm(true)
               } else {
                 setError(err.message)
               }
@@ -169,8 +317,9 @@ export default function HomePage() {
             setAccounts(prev => prev.map(a => a.id === first.id ? full : a))
           } catch (err: any) {
             if (err.status === 401) {
-              toast.error('Session expired, removing account...')
-              await handleDeleteAccount(first.id)
+              toast.error('Session expired. Please re-authenticate.')
+              setReauthAccountId(first.id)
+              setShowAddForm(true)
             } else {
               setError(err.message)
             }
@@ -239,14 +388,26 @@ export default function HomePage() {
       setError('')
       const { accessToken, idToken } = extractAccessToken(redirectUrl)
       const newAccount = await storage.saveAccount(accessToken, idToken || '')
-      await storage.setActiveAccountId(newAccount.id)
+
       const updatedAccounts = await storage.getAccounts()
       setAccounts(updatedAccounts)
+
+      if (reauthAccountId) {
+        if (newAccount.id !== reauthAccountId) {
+          toast.warning(`Re-authenticated with a different account: ${newAccount.name}#${newAccount.tag}`, { duration: 5000 })
+        } else {
+          toast.success('Account re-authenticated successfully')
+        }
+      } else {
+        toast.success('Account added successfully')
+      }
+
+      await storage.setActiveAccountId(newAccount.id)
       setActiveAccountId(newAccount.id)
       setResult(newAccount.data)
       setShowAddForm(false)
+      setReauthAccountId(null)
       setRedirectUrl('')
-      toast.success('Account added successfully')
     } catch (err: any) {
       setError(err.message)
       toast.error(err.message || 'Failed to add account')
@@ -267,8 +428,9 @@ export default function HomePage() {
           setAccounts(prev => prev.map(a => a.id === id ? full : a))
         } catch (err: any) {
           if (err.status === 401) {
-            toast.error('Session expired, removing account...')
-            await handleDeleteAccount(id)
+            toast.error('Session expired. Please re-authenticate.')
+            setReauthAccountId(id)
+            setShowAddForm(true)
           } else {
             setError(err.message)
             toast.error(err.message || 'Failed to load account details')
@@ -316,8 +478,9 @@ export default function HomePage() {
       toast.success('Data updated', { id: toastId })
     } catch (err: any) {
       if (err.status === 401) {
-        toast.error('Session expired, removing account...', { id: toastId })
-        await handleDeleteAccount(activeAccountId)
+        toast.error('Session expired. Please re-authenticate.', { id: toastId })
+        setReauthAccountId(activeAccountId)
+        setShowAddForm(true)
       } else {
         setError(err.message)
         toast.error(err.message || 'Refresh failed', { id: toastId })
@@ -352,13 +515,16 @@ export default function HomePage() {
   const showNightMarket = !!result?.store?.BonusStore
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col pb-2">
+    <div className="min-h-screen bg-black text-white flex flex-col">
       <Header
         accounts={accounts}
         activeAccountId={activeAccountId}
         onSelect={handleSelectAccount}
         onDelete={handleDeleteAccount}
-        onAdd={() => setShowAddForm(true)}
+        onAdd={() => {
+          setReauthAccountId(null)
+          setShowAddForm(true)
+        }}
         playerCardsData={playerCardsData}
       />
 
@@ -370,6 +536,7 @@ export default function HomePage() {
             titlesData={titlesData}
             onRefresh={handleRefresh}
             loading={loading}
+            onPlayerCardClick={() => setShowPlayerCardModal(true)}
           />
           <DashboardTabs
             activeTab={activeTab}
@@ -379,8 +546,12 @@ export default function HomePage() {
         </>
       )}
 
-      <main className="flex-1 px-2 mt-38">
-        <div className="max-w-7xl mx-auto">
+      <main
+        className="flex-1 px-4 py-8 mt-38 relative overflow-hidden bg-cover bg-center bg-no-repeat min-h-[calc(100vh-152px)]"
+        style={{ backgroundImage: "url('https://pbs.twimg.com/media/FfM55w5WIAAxH06?format=jpg&name=large')" }}
+      >
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-[2px] pointer-events-none" />
+        <div className="max-w-[1480px] mx-auto relative z-10">
           {showAddForm && (
             <InstructionSection
               redirectUrl={redirectUrl}
@@ -388,13 +559,24 @@ export default function HomePage() {
               handleGetInfo={handleGetInfo}
               loading={loading}
               error={error}
-              onClose={() => setShowAddForm(false)}
+              onClose={() => {
+                setShowAddForm(false)
+                setReauthAccountId(null)
+                setRedirectUrl('')
+                setError('')
+              }}
+              title={reauthAccountId ? "Re-authenticate Account" : "Add Valorant Account"}
+              submitText={reauthAccountId ? "Re-authenticate" : "Add Account"}
+              reauthAccountName={reauthAccountId ? (() => {
+                const acc = accounts.find(a => a.id === reauthAccountId)
+                return acc ? `${acc.name}#${acc.tag}` : undefined
+              })() : undefined}
             />
           )}
 
           {result && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-              <div className="mt-8">
+              <div className={`mt-8 ${activeTab === 'collection' ? 'lg:mt-2' : ''}`}>
                 {activeTab === 'store' && (
                   <div className="space-y-12 animate-in fade-in slide-in-from-left-4 duration-500">
                     <FeaturedBundle
@@ -444,10 +626,43 @@ export default function HomePage() {
                       loadout={result.loadout}
                       weaponsData={weaponsData}
                       buddiesData={buddiesData}
+                      playerCardsData={playerCardsData}
+                      user={result.user}
+                      ownedSkins={result.ownedSkins}
+                      contractsData={contractsData}
                       onWeaponClick={(weapon) => {
                         setSelectedWeaponForModal(weapon)
                         setSelectedSkinIdForModal(undefined)
                       }}
+                      onPlayerCardClick={() => setShowPlayerCardModal(true)}
+                      skinPricesData={skinPricesData}
+                    />
+                  </div>
+                )}
+                {activeTab === 'builder' && (
+                  <div className="animate-in fade-in slide-in-from-left-4 duration-500">
+                    <VirtualWeaponLoadout
+                      loadout={virtualLoadout}
+                      weaponsData={weaponsData}
+                      buddiesData={buddiesData}
+                      playerCardsData={playerCardsData}
+                      onWeaponClick={(weapon) => {
+                        setSelectedVirtualWeaponForModal(weapon)
+                      }}
+                      onPlayerCardClick={() => setShowVirtualPlayerCardModal(true)}
+                      onReset={handleResetVirtualLoadout}
+                      skinPricesData={skinPricesData}
+                    />
+                  </div>
+                )}
+                {activeTab === 'skins' && (
+                  <div className="animate-in fade-in slide-in-from-left-4 duration-500">
+                    <OwnedSkinsGrid
+                      weaponsData={weaponsData}
+                      ownedSkins={result.ownedSkins}
+                      contractsData={contractsData}
+                      onSkinClick={handleSkinClick}
+                      skinPricesData={skinPricesData}
                     />
                   </div>
                 )}
@@ -480,6 +695,76 @@ export default function HomePage() {
                   initialSkinId={selectedSkinIdForModal}
                 />
               )}
+
+              {showPlayerCardModal && playerCardsData && (
+                <PlayerCardSelector
+                  playerCards={playerCardsData}
+                  ownedCards={result.ownedSkins}
+                  equippedCardId={result.loadout?.Identity?.PlayerCardID}
+                  gameName={result.user?.acct?.game_name}
+                  onClose={() => setShowPlayerCardModal(false)}
+                />
+              )}
+
+              {selectedVirtualWeaponForModal && (
+                <VirtualSkinSelector
+                  weapon={selectedVirtualWeaponForModal}
+                  loadout={virtualLoadout}
+                  buddiesData={buddiesData}
+                  onClose={() => {
+                    setSelectedVirtualWeaponForModal(null)
+                  }}
+                  onEquip={handleEquipVirtualSkin}
+                />
+              )}
+
+              {showVirtualPlayerCardModal && playerCardsData && (
+                <VirtualPlayerCardSelector
+                  playerCards={playerCardsData}
+                  equippedCardId={virtualLoadout?.Identity?.PlayerCardID}
+                  initialName={virtualLoadout?.Identity?.PlayerName}
+                  initialTag={virtualLoadout?.Identity?.PlayerTag}
+                  onClose={() => setShowVirtualPlayerCardModal(false)}
+                  onEquip={handleEquipVirtualIdentity}
+                />
+              )}
+
+              <BaseDialog
+                isOpen={showResetConfirmModal}
+                onClose={() => setShowResetConfirmModal(false)}
+                title="Reset Inventory Builder Loadout"
+                description="Confirm Action"
+                maxWidth="md"
+              >
+                <div className="p-6 md:p-8 flex flex-col items-center gap-5 bg-[#0f1923]">
+                  <div className="w-12 h-12 rounded-full border border-[#FF4655]/20 bg-[#FF4655]/10 flex items-center justify-center text-[#FF4655]">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                      <path d="m15 9-6 6" /><path d="m9 9 6 6" /><rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+                    </svg>
+                  </div>
+                  <p className="text-zinc-300 text-xs font-bold text-center uppercase tracking-wider leading-relaxed max-w-sm">
+                    Are you sure you want to reset your inventory builder loadout? This will revert all weapons, skins, buddies, player card and custom name/tag back to defaults.
+                  </p>
+                  <div className="w-full h-px bg-zinc-800 my-2" />
+                  <div className="flex gap-3 w-full max-w-xs justify-center">
+                    <button
+                      onClick={() => setShowResetConfirmModal(false)}
+                      className="flex-1 py-2 border border-zinc-800 text-zinc-400 text-[10px] font-bold uppercase tracking-widest hover:border-zinc-700 hover:text-white transition-all rounded"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => {
+                        performResetVirtualLoadout()
+                        setShowResetConfirmModal(false)
+                      }}
+                      className="flex-1 py-2 bg-[#FF4655] hover:bg-[#ff5865] active:scale-95 text-white text-[10px] font-black uppercase tracking-widest transition-all rounded shadow-lg shadow-[#FF4655]/20"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                </div>
+              </BaseDialog>
             </div>
           )}
         </div>
