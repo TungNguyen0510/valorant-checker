@@ -5,6 +5,7 @@ import { DashboardTabs } from '@/components/DashboardTabs'
 import { useQuery } from '@tanstack/react-query'
 import { InstructionSection } from '@/components/InstructionSection'
 import { UserInfoSection } from '@/components/UserInfoSection'
+import { SellAccountDialog } from '@/components/SellAccountDialog'
 import { FeaturedBundle } from '@/components/FeaturedBundle'
 import { DailyOffers } from '@/components/DailyOffers'
 import { AccessoryStore } from '@/components/AccessoryStore'
@@ -196,6 +197,7 @@ export default function HomePage() {
   const [selectedWeaponForModal, setSelectedWeaponForModal] = useState<any>(null)
   const [selectedSkinIdForModal, setSelectedSkinIdForModal] = useState<string | undefined>(undefined)
   const [showPlayerCardModal, setShowPlayerCardModal] = useState(false)
+  const [showSellModal, setShowSellModal] = useState(false)
 
   // Virtual loadout states
   const [virtualLoadout, setVirtualLoadout] = useState<any>(null)
@@ -539,6 +541,71 @@ export default function HomePage() {
     }
   }
 
+  async function loadLocalAccountDetails(id: string) {
+    const toastId = toast.loading('Syncing account state...')
+    try {
+      setLoading(true)
+      const localAccount = await storage.getAccount(id)
+      setResult(localAccount.data)
+      
+      // Update account in accounts array with the new local listing data
+      setAccounts(prev => prev.map(a => a.id === id ? localAccount : a))
+      toast.success('Account state synced', { id: toastId })
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to sync account state', { id: toastId })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleCancelSell() {
+    if (!result?.listing?.id) return
+    const toastId = toast.loading('Cancelling listing...')
+    try {
+      setLoading(true)
+      const res = await fetch(`/api/shop/${result.listing.id}`, {
+        method: 'DELETE'
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Failed to cancel listing')
+      }
+      toast.success('Listing cancelled successfully', { id: toastId })
+      if (activeAccountId) {
+        await loadLocalAccountDetails(activeAccountId)
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to cancel listing', { id: toastId })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleMarkSold() {
+    if (!result?.listing?.id) return
+    const toastId = toast.loading('Updating listing status...')
+    try {
+      setLoading(true)
+      const res = await fetch(`/api/shop/${result.listing.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'sold' })
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Failed to update listing status')
+      }
+      toast.success('Account marked as sold successfully', { id: toastId })
+      if (activeAccountId) {
+        await loadLocalAccountDetails(activeAccountId)
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update listing status', { id: toastId })
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const offers = result?.store?.SkinsPanelLayout?.SingleItemOffers || []
   const accessoryOffers =
     result?.store?.AccessoryStorePanel?.AccessoryStoreOffers ||
@@ -586,6 +653,9 @@ export default function HomePage() {
             onRefresh={handleRefresh}
             loading={loading}
             onPlayerCardClick={() => setShowPlayerCardModal(true)}
+            onSellClick={() => setShowSellModal(true)}
+            onCancelSell={handleCancelSell}
+            onMarkSold={handleMarkSold}
           />
           <DashboardTabs
             activeTab={activeTab}
@@ -820,6 +890,19 @@ export default function HomePage() {
                       </div>
                     </div>
                   </BaseDialog>
+
+                  {showSellModal && result && (
+                    <SellAccountDialog
+                      isOpen={showSellModal}
+                      onClose={() => setShowSellModal(false)}
+                      accountId={activeAccountId || ''}
+                      accountName={result.user?.acct?.game_name || ''}
+                      accountTag={result.user?.acct?.tag_line || ''}
+                      onSuccess={() => {
+                        if (activeAccountId) loadLocalAccountDetails(activeAccountId)
+                      }}
+                    />
+                  )}
                 </div>
               )}
             </>

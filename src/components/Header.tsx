@@ -86,7 +86,7 @@ const AccountSwitcher = ({
           <div className="px-3 py-1.5 text-[10px] font-black text-zinc-500 uppercase tracking-widest">
             Switch Account
           </div>
-          
+
           <div className="max-h-60 overflow-y-auto flex flex-col gap-0.5">
             {accounts.map((account) => {
               const playerCardId = account.data?.loadout?.Identity?.PlayerCardID
@@ -100,11 +100,10 @@ const AccountSwitcher = ({
                     onSelect(account.id)
                     setIsOpen(false)
                   }}
-                  className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-all group ${
-                    isActive
-                      ? 'bg-zinc-900 border border-zinc-800 text-white font-bold'
-                      : 'hover:bg-zinc-900 border border-transparent text-zinc-300 hover:text-white'
-                  }`}
+                  className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-all group ${isActive
+                    ? 'bg-zinc-900 border border-zinc-800 text-white font-bold'
+                    : 'hover:bg-zinc-900 border border-transparent text-zinc-300 hover:text-white'
+                    }`}
                 >
                   <div className="flex items-center gap-2 truncate">
                     <div className="w-6 h-6 rounded border border-white/10 overflow-hidden bg-zinc-800 flex-none">
@@ -190,19 +189,25 @@ export const Header = ({
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-black/50 backdrop-blur-xl">
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        <Logo />
+        <div className="flex items-center gap-8">
+          <Logo />
+          <nav className="hidden md:flex items-center gap-6">
+            <Link
+              href="/dashboard"
+              className="text-xs font-black uppercase tracking-widest text-zinc-400 hover:text-[#FF4655] transition-colors"
+            >
+              Dashboard
+            </Link>
+            <Link
+              href="/shop"
+              className="text-xs font-black uppercase tracking-widest text-zinc-400 hover:text-[#FF4655] transition-colors"
+            >
+              Shop
+            </Link>
+          </nav>
+        </div>
 
         <div className="flex items-center gap-6">
-          {hasAccounts && (
-            <>
-              <div className="hidden md:flex gap-2 items-center">
-                <span className="text-sm text-zinc-500 font-bold tracking-widest uppercase">Accounts: </span>
-                <span className="text-sm font-black text-white">{accounts.length}</span>
-              </div>
-              <div className="h-8 w-px bg-white/10 hidden md:block" />
-            </>
-          )}
-
           <div className="flex items-center gap-4">
             {showLandingButtons ? (
               <div className="flex items-center gap-6">

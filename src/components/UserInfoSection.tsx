@@ -10,6 +10,9 @@ interface UserInfoSectionProps {
   onRefresh?: () => void
   loading?: boolean
   onPlayerCardClick?: () => void
+  onSellClick?: () => void
+  onCancelSell?: () => void
+  onMarkSold?: () => void
 }
 
 export const UserInfoSection = ({
@@ -18,7 +21,10 @@ export const UserInfoSection = ({
   titlesData,
   onRefresh,
   loading,
-  onPlayerCardClick
+  onPlayerCardClick,
+  onSellClick,
+  onCancelSell,
+  onMarkSold
 }: UserInfoSectionProps) => {
   const playerCardId = result.loadout?.Identity?.PlayerCardID
   const card = playerCardsData?.find((c: any) => c.uuid === playerCardId)
@@ -98,11 +104,42 @@ export const UserInfoSection = ({
           </div>
 
           <div className="flex items-center gap-2">
+            {result.listing && result.listing.status === 'active' ? (
+              <div className="flex items-center gap-2 bg-[#FF4655]/10 border border-[#FF4655]/20 px-2.5 py-1 text-[10px] md:text-xs">
+                <span className="text-zinc-500 font-bold uppercase">LISTED:</span>
+                <span className="text-[#FF4655] font-black">{result.listing.price.toLocaleString()}đ</span>
+                <button
+                  onClick={onMarkSold}
+                  disabled={loading}
+                  className="ml-2 bg-[#FF4655] hover:bg-[#ff5e6a] text-white px-2 py-0.5 font-bold uppercase tracking-wider text-[9px] transition-all cursor-pointer rounded-none border-none"
+                >
+                  Mark Sold
+                </button>
+                <button
+                  onClick={onCancelSell}
+                  disabled={loading}
+                  className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-2 py-0.5 font-bold uppercase tracking-wider text-[9px] transition-all cursor-pointer border border-zinc-700 rounded-none"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              onSellClick && (
+                <button
+                  onClick={onSellClick}
+                  disabled={loading}
+                  className="bg-[#FF4655] hover:bg-[#ff5e6a] text-white px-3 py-1 font-bold uppercase tracking-wider text-[10px] md:text-xs transition-all cursor-pointer shadow-[2px_2px_0px_0px_rgba(255,70,85,0.3)] hover:shadow-none rounded-none border-none"
+                >
+                  Sell Account
+                </button>
+              )
+            )}
+
             {onRefresh && (
               <button
                 onClick={onRefresh}
                 disabled={loading}
-                className={`p-1.5 rounded-lg border border-white/5 hover:bg-white/5 transition-all duration-300 group ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`p-1.5 rounded-none border border-white/5 hover:bg-white/5 transition-all duration-300 group ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="Refresh Data"
               >
                 <svg

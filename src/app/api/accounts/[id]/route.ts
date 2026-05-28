@@ -23,7 +23,19 @@ export async function GET(
 
   // Return full data but strip tokens
   const { accessToken, idToken, ...safeAccount } = account;
-  return NextResponse.json(safeAccount);
+
+  const listing = await db.getListingByAccountId(id);
+  const responseData = {
+    ...safeAccount,
+    listing: listing ? {
+      id: listing.id,
+      price: listing.price,
+      description: listing.description,
+      status: listing.status,
+      contactInfo: listing.contactInfo,
+    } : null
+  };
+  return NextResponse.json(responseData);
 }
 
 export async function DELETE(

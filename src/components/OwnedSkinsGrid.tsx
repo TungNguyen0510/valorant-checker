@@ -97,6 +97,7 @@ export const OwnedSkinsGrid = ({
       const category = getWeaponCategory(weapon.displayName)
 
       weapon.skins?.forEach((skin: any) => {
+        if (!skin || !skin.displayName) return
         // Skip standard/default skins
         if (skin.displayName.includes('Standard') || skin.displayName === 'Melee') {
           return

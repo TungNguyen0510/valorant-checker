@@ -173,7 +173,7 @@ export const VirtualWeaponLoadout = ({
                           {/* Weapon Image */}
                           <div className="flex-1 flex items-center justify-center p-2 lg:p-1 relative">
                             <img
-                              src={skin?.equippedChroma?.displayIcon || skin?.equippedLevel?.displayIcon || skin?.chromas?.[0].displayIcon || skin?.levels?.[0].displayIcon || weapon.displayIcon}
+                              src={skin?.equippedChroma?.displayIcon || skin?.equippedLevel?.displayIcon || skin?.chromas?.[0]?.displayIcon || skin?.levels?.[0]?.displayIcon || weapon.displayIcon}
                               alt={weapon.displayName}
                               className={`w-full h-auto ${category.weapons.length > 5 ? 'max-h-13 lg:max-h-[44px]' : 'max-h-16 lg:max-h-[52px]'} object-contain transform transition-transform duration-500 group-hover:scale-110 ${isMelee ? 'scale-125 lg:scale-110' : ''}`}
                             />
