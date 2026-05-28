@@ -24,7 +24,9 @@ export const NightMarket = ({ bonusStore, weaponsData, onSkinClick }: NightMarke
             <div className="h-px w-8 bg-zinc-700"></div>
             <div>
               ENDS IN <span className="text-[#ff4655]">
-                {Math.floor(remainingSeconds / 86400)} DAYS
+                {Math.floor(remainingSeconds / 3600).toString().padStart(2, '0')}:
+                {Math.floor((remainingSeconds % 3600) / 60).toString().padStart(2, '0')}:
+                {Math.floor(remainingSeconds % 60).toString().padStart(2, '0')}
               </span>
             </div>
             <div className="h-px w-8 bg-zinc-700"></div>
