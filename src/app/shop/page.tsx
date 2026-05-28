@@ -11,6 +11,8 @@ import * as storage from '@/utils/storage'
 import Link from 'next/link'
 import { Search, Filter, X, Tag, Sparkles } from 'lucide-react'
 import { TIER_ICONS, TIER_RANKS } from '@/constants/valorant'
+import { SkinsCarousel } from '@/components/SkinsCarousel'
+import { VPIcon, RPIcon, KCIcon } from '@/components/Icons'
 
 // Rank mapping from tier index
 const RANK_TIERS = [
@@ -462,16 +464,7 @@ export default function ShopPage() {
       >
         <div className="absolute inset-0 bg-black/80 backdrop-blur-xs z-0" />
 
-        <div className="max-w-[1480px] mx-auto relative z-10 pt-8 pb-16">
-
-          {/* Header Banner */}
-          <div className="mb-8 text-center md:text-left relative">
-            <h1 className="text-4xl md:text-6xl font-black italic uppercase tracking-tighter text-white mb-2">
-              VALORANT <span className="text-transparent bg-clip-text bg-linear-to-r from-[#FF4655] to-[#ff7d87] pr-4">SHOP</span>
-            </h1>
-            <div className="w-20 h-1 bg-[#FF4655] mt-4" />
-          </div>
-
+        <div className="max-w-[1480px] mx-auto relative z-10 pt-6 pb-12">
           {/* Horizontal Filters Panel */}
           <form
             onSubmit={handleApplyFilters}
@@ -1044,6 +1037,60 @@ export default function ShopPage() {
                     const rankTier = detailData.rank?.LatestCompetitiveUpdate?.TierAfterUpdate || 0
                     const rankInfo = getRankInfo(rankTier)
 
+                    // Extract exact level
+                    const accountLevel = (() => {
+                      if (detailData.accountLevel) return detailData.accountLevel
+                      if (detailData.accountXP?.Progress?.Level) {
+                        return detailData.accountXP.Progress.Level
+                      }
+                      const puuid = detailData.puuid
+                      if (puuid && Array.isArray(detailData.matchDetails)) {
+                        for (const match of detailData.matchDetails) {
+                          if (match && Array.isArray(match.players)) {
+                            const me = match.players.find((p: any) => p.subject === puuid)
+                            if (me && me.accountLevel) {
+                              return me.accountLevel
+                            }
+                          }
+                        }
+                      }
+                      return 'N/A'
+                    })()
+
+                    // Filter exact owned skins
+                    const ownedWeaponSkins = (() => {
+                      if (!weaponsData || !detailData.ownedSkins) return []
+                      const list: any[] = []
+                      weaponsData.forEach((weapon: any) => {
+                        weapon.skins?.forEach((skin: any) => {
+                          if (!skin || !skin.displayName) return
+                          if (skin.displayName.includes('Standard') || skin.displayName === 'Melee') return
+
+                          const isOwned = skin.levels?.some((level: any) =>
+                            detailData.ownedSkins.some((ownedUuid: string) => ownedUuid.toLowerCase() === level.uuid.toLowerCase())
+                          )
+                          if (isOwned) {
+                            list.push({
+                              ...skin,
+                              isMelee: weapon.displayName === 'Melee'
+                            })
+                          }
+                        })
+                      })
+                      return list.sort((a, b) => {
+                        // Prioritize melee skins first
+                        if (a.isMelee && !b.isMelee) return -1
+                        if (!a.isMelee && b.isMelee) return 1
+
+                        const rankA = a.contentTierUuid ? (TIER_RANKS[a.contentTierUuid] || 0) : 0
+                        const rankB = b.contentTierUuid ? (TIER_RANKS[b.contentTierUuid] || 0) : 0
+                        if (rankB !== rankA) {
+                          return rankB - rankA
+                        }
+                        return a.displayName.localeCompare(b.displayName)
+                      })
+                    })()
+
                     return (
                       <div
                         key={listing.id}
@@ -1058,13 +1105,13 @@ export default function ShopPage() {
                               className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-60 group-hover:opacity-75"
                             />
                           ) : (
-                            <div className="absolute inset-0 bg-gradient-to-br from-zinc-800 to-zinc-950 opacity-50" />
+                            <div className="absolute inset-0 bg-linear-to-br from-zinc-800 to-zinc-950 opacity-50" />
                           )}
                           <div className="absolute inset-0 bg-linear-to-t from-[#0f1923] via-[#0f1923]/30 to-black/60 z-1" />
 
                           {/* Info on Splash */}
                           <div className="absolute top-4 left-4 z-10 flex flex-col leading-tight">
-                            <span className="text-white font-black text-sm uppercase group-hover:text-[#FF4655] transition-colors truncate max-w-[180px]">
+                            <span className="text-white font-black text-sm group-hover:text-[#FF4655] transition-colors truncate max-w-[180px]">
                               {account.name}
                               <span className="text-zinc-400 font-bold ml-1 text-xs">#{account.tag}</span>
                             </span>
@@ -1073,33 +1120,66 @@ export default function ShopPage() {
                             </span>
                           </div>
 
-                          {/* Rank Display inside Splash */}
-                          <div className="absolute bottom-2 right-4 z-10 flex items-center gap-2">
-                            <div className="text-right">
-                              <span className="block text-[8px] text-zinc-400 font-bold uppercase tracking-wider leading-none">RANK</span>
-                              <span className="text-white font-heading text-xs font-black uppercase leading-none italic">{rankInfo?.displayName || 'Unranked'}</span>
+                          {/* Level & Rank Display inside Splash (Aligned side-by-side) */}
+                          <div className="absolute bottom-2 left-4 right-4 z-10 flex items-center justify-between">
+                            <div className="flex flex-col">
+                              <span className="block text-[8px] text-zinc-400 font-bold uppercase tracking-wider leading-none">LEVEL</span>
+                              <span className="text-white font-heading text-xs font-black uppercase leading-none italic mt-1">
+                                {accountLevel}
+                              </span>
                             </div>
-                            {rankInfo?.smallIcon ? (
-                              <img src={rankInfo.smallIcon} alt="" className="w-10 h-10 drop-shadow-[0_0_10px_rgba(255,70,85,0.4)]" />
-                            ) : (
-                              <div className="w-10 h-10 bg-white/5 rounded border border-white/10 flex items-center justify-center text-[8px] text-zinc-500 font-black">N/A</div>
-                            )}
+
+                            <div className="flex items-center gap-2">
+                              <div className="text-right">
+                                <span className="block text-[8px] text-zinc-400 font-bold uppercase tracking-wider leading-none">RANK</span>
+                                <span className="text-white font-heading text-xs font-black uppercase leading-none italic">{rankInfo?.tierName || 'Unranked'}</span>
+                              </div>
+                              {rankInfo?.smallIcon ? (
+                                <img src={rankInfo.smallIcon} alt="" className="w-10 h-10 drop-shadow-[0_0_10px_rgba(255,70,85,0.4)]" />
+                              ) : (
+                                <div className="w-10 h-10 bg-white/5 rounded border border-white/10 flex items-center justify-center text-[8px] text-zinc-500 font-black">N/A</div>
+                              )}
+                            </div>
                           </div>
                         </div>
 
                         {/* Card Body */}
                         <div className="p-5 flex-1 flex flex-col gap-4">
-                          <div className="grid grid-cols-2 gap-4 border-b border-zinc-800 pb-4">
+                          <div className="grid grid-cols-2 gap-4 border-b border-zinc-800 pb-3">
                             <div className="flex flex-col">
-                              <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest">LEVEL STATE</span>
-                              <span className="text-white font-black text-xs italic uppercase tracking-wider mt-0.5">
-                                {detailData.wallet ? 'Level Active' : 'Level N/A'}
-                              </span>
-                            </div>
-                            <div className="flex flex-col text-right">
                               <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest">OWNED SKINS</span>
-                              <span className="text-teal-400 font-black text-sm">{detailData.ownedSkinsCount || 0} Skins</span>
+                              <span className="text-teal-400 font-black text-xs mt-0.5">{ownedWeaponSkins.length} Skins</span>
                             </div>
+                            <div className="flex flex-col items-end justify-center">
+                              {detailData.wallet?.Balances && (
+                                <div className="flex gap-2">
+                                  <div className="flex items-center gap-1 text-rose-400" title="Valorant Points">
+                                    <VPIcon className="size-3" />
+                                    <span className="font-bold text-[10px]">
+                                      {detailData.wallet.Balances['85ad13f7-3d1b-5128-9eb2-7cd8ee0b5741']?.toLocaleString() || 0}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1 text-orange-400" title="Radianite Points">
+                                    <RPIcon className="size-3" />
+                                    <span className="font-bold text-[10px]">
+                                      {detailData.wallet.Balances['e59aa87c-4cbf-517a-5983-6e81511be9b7']?.toLocaleString() || 0}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1 text-teal-400" title="Kingdom Credits">
+                                    <KCIcon className="size-3" />
+                                    <span className="font-bold text-[10px]">
+                                      {detailData.wallet.Balances['85ca954a-41f2-ce94-9b45-8ca3dd39a00d']?.toLocaleString() || 0}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Owned Skins Carousel */}
+                          <div className="flex flex-col gap-1.5">
+                            <span className="text-[9px] text-zinc-550 font-bold uppercase tracking-widest">SKINS PREVIEW</span>
+                            <SkinsCarousel skins={ownedWeaponSkins} />
                           </div>
 
                           {/* Description Snippet */}
@@ -1120,7 +1200,7 @@ export default function ShopPage() {
 
                             <Link
                               href={`/shop/${listing.id}`}
-                              className="bg-[#FF4655] hover:bg-[#ff5e6a] text-white px-4 py-2 text-[10px] font-black uppercase tracking-wider transition-all rounded-none shadow-[2px_2px_0px_0px_rgba(255,70,85,0.3)] hover:shadow-none cursor-pointer"
+                              className="bg-[#FF4655] hover:bg-[#ff5e6a] text-[#0f1923] hover:text-white px-4 py-2 text-[10px] font-black uppercase tracking-wider transition-all rounded-none shadow-[2px_2px_0px_0px_rgba(255,70,85,0.3)] hover:shadow-none cursor-pointer"
                             >
                               VIEW DETAILS
                             </Link>

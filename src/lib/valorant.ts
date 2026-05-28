@@ -163,6 +163,19 @@ async function fetchCompetitiveUpdates(puuid: string, accessToken: string, entit
   return resp.ok ? resp.json() : null
 }
 
+async function fetchAccountXP(puuid: string, accessToken: string, entitlements: string, version: string, affinity: string) {
+  const resp = await fetch(`https://pd.${affinity}.a.pvp.net/account-xp/v1/players/${puuid}`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'X-Riot-Entitlements-JWT': entitlements,
+      'X-Riot-ClientPlatform': CLIENT_PLATFORM,
+      'X-Riot-ClientVersion': version,
+    },
+    cache: 'no-store',
+  })
+  return resp.ok ? resp.json() : null
+}
+
 async function fetchMatchDetails(matchId: string, accessToken: string, entitlements: string, version: string, affinity: string) {
   const resp = await fetch(`https://pd.${affinity}.a.pvp.net/match-details/v1/matches/${matchId}`, {
     headers: {
@@ -221,13 +234,14 @@ export async function getValorantData(accessToken: string, idToken: string) {
     throw new Error(`Failed to fetch storefront: ${storefront.status} ${JSON.stringify(storefront.data)}`)
   }
 
-  const [wallet, entitlementsRes, loadout, rank, matchHistory, competitiveUpdates] = await Promise.all([
+  const [wallet, entitlementsRes, loadout, rank, matchHistory, competitiveUpdates, accountXP] = await Promise.all([
     fetchWallet(puuid, accessToken, entitlements, version, affinity),
     fetchEntitlements(puuid, accessToken, entitlements, version, affinity),
     fetchPlayerLoadout(puuid, accessToken, entitlements, version, affinity),
     fetchRank(puuid, accessToken, entitlements, version, affinity),
     fetchMatchHistory(puuid, accessToken, entitlements, version, affinity),
     fetchCompetitiveUpdates(puuid, accessToken, entitlements, version, affinity),
+    fetchAccountXP(puuid, accessToken, entitlements, version, affinity).catch(() => null),
   ])
 
   // Fetch match details for the last 30 matches
@@ -257,5 +271,6 @@ export async function getValorantData(accessToken: string, idToken: string) {
     matchHistory,
     competitiveUpdates,
     matchDetails,
+    accountXP,
   }
 }

@@ -5,14 +5,12 @@ import { Header } from '@/components/Header'
 import { useQuery } from '@tanstack/react-query'
 import * as storage from '@/utils/storage'
 import Link from 'next/link'
-import { WeaponLoadout } from '@/components/WeaponLoadout'
 import { OwnedSkinsGrid } from '@/components/OwnedSkinsGrid'
-import { MatchHistory } from '@/components/MatchHistory'
 import { BaseDialog } from '@/components/BaseDialog'
 import { ArrowLeft, User, DollarSign, Calendar, MessageSquare, Info, ShieldAlert, Award, Hash, Compass } from 'lucide-react'
 
 // Tab type definition
-type TabId = 'details' | 'loadout' | 'skins' | 'history'
+type TabId = 'details' | 'skins' | 'agents' | 'cards' | 'buddies' | 'sprays'
 
 interface ShopDetailPageProps {
   params: Promise<{ id: string }>
@@ -22,10 +20,16 @@ export default function ShopDetailPage({ params }: ShopDetailPageProps) {
   const { id } = use(params)
   const [myAccounts, setMyAccounts] = useState<any[]>([])
   const [activeAccountId, setActiveAccountId] = useState<string | null>(null)
-  
+
   // Tab and contact dialog states
   const [activeTab, setActiveTab] = useState<TabId>('details')
   const [showContactDialog, setShowContactDialog] = useState(false)
+
+  // Search queries for new tabs
+  const [agentSearch, setAgentSearch] = useState('')
+  const [cardSearch, setCardSearch] = useState('')
+  const [buddySearch, setBuddySearch] = useState('')
+  const [spraySearch, setSpraySearch] = useState('')
 
   // Load user accounts for Header Switcher
   useEffect(() => {
@@ -90,6 +94,15 @@ export default function ShopDetailPage({ params }: ShopDetailPageProps) {
     queryKey: ['buddies'],
     queryFn: async () => {
       const res = await fetch('https://valorant-api.com/v1/buddies')
+      const json = await res.json()
+      return json.data
+    }
+  })
+
+  const { data: spraysData } = useQuery({
+    queryKey: ['sprays'],
+    queryFn: async () => {
+      const res = await fetch('https://valorant-api.com/v1/sprays')
       const json = await res.json()
       return json.data
     }
@@ -187,6 +200,117 @@ export default function ShopDetailPage({ params }: ShopDetailPageProps) {
 
   const account = listing.account
   const detailData = account.data || {}
+
+  // Extract exact level
+  const accountLevel = (() => {
+    if (detailData.accountLevel) return detailData.accountLevel
+    if (detailData.accountXP?.Progress?.Level) {
+      return detailData.accountXP.Progress.Level
+    }
+    const puuid = detailData.puuid
+    if (puuid && Array.isArray(detailData.matchDetails)) {
+      for (const match of detailData.matchDetails) {
+        if (match && Array.isArray(match.players)) {
+          const me = match.players.find((p: any) => p.subject === puuid)
+          if (me && me.accountLevel) {
+            return me.accountLevel
+          }
+        }
+      }
+    }
+    return 'N/A'
+  })()
+
+  // Filter exact owned skins
+  const ownedWeaponSkins = (() => {
+    if (!weaponsData || !detailData.ownedSkins) return []
+    const list: any[] = []
+    weaponsData.forEach((weapon: any) => {
+      weapon.skins?.forEach((skin: any) => {
+        if (!skin || !skin.displayName) return
+        if (skin.displayName.includes('Standard') || skin.displayName === 'Melee') return
+
+        const isOwned = skin.levels?.some((level: any) =>
+          detailData.ownedSkins.some((ownedUuid: string) => ownedUuid.toLowerCase() === level.uuid.toLowerCase())
+        )
+        if (isOwned) {
+          list.push(skin)
+        }
+      })
+    })
+    return list
+  })()
+
+  // Filter exact owned agents
+  const defaultAgentUuids = new Set([
+    'add6443c-41bd-43e4-bb32-f02edd7dd8a9', // Jett
+    '117ed9e3-49f3-4315-ad36-ff4015c0b82a', // Phoenix
+    '5685d5a9-584a-4458-ae47-31c8856b3e3f', // Sage
+    'ded3520f-4264-bfed-de78-a0b777be2014', // Sova
+    '9f0f7139-440a-9137-f0a7-809f194c515b'  // Brimstone
+  ])
+  const ownedAgents = (() => {
+    if (!agentsData || !detailData.ownedSkins) return []
+    return agentsData.filter((agent: any) => {
+      const uuidLower = agent.uuid.toLowerCase()
+      if (defaultAgentUuids.has(uuidLower)) return true
+      return detailData.ownedSkins?.some((id: string) => id.toLowerCase() === uuidLower)
+    })
+  })()
+
+  // Filter exact owned cards
+  const ownedCards = (() => {
+    if (!playerCardsData || !detailData.ownedSkins) return []
+    return playerCardsData.filter((card: any) => {
+      const uuidLower = card.uuid.toLowerCase()
+      const isStandard = card.displayName === 'Standard' || card.displayName?.includes('Standard')
+      if (isStandard) return true
+      return detailData.ownedSkins?.some((id: string) => id.toLowerCase() === uuidLower)
+    })
+  })()
+
+  // Filter exact owned buddies
+  const ownedBuddies = (() => {
+    if (!buddiesData || !detailData.ownedSkins) return []
+    return buddiesData.filter((buddy: any) => {
+      const buddyUuid = buddy.uuid.toLowerCase()
+      const levelUuids = buddy.levels?.map((l: any) => l.uuid.toLowerCase()) || []
+      return detailData.ownedSkins?.some((id: string) => {
+        const lowerId = id.toLowerCase()
+        return lowerId === buddyUuid || levelUuids.includes(lowerId)
+      })
+    })
+  })()
+
+  // Filter exact owned sprays
+  const ownedSprays = (() => {
+    if (!spraysData || !detailData.ownedSkins) return []
+    return spraysData.filter((spray: any) => {
+      const sprayUuid = spray.uuid.toLowerCase()
+      const levelUuids = spray.levels?.map((l: any) => l.uuid.toLowerCase()) || []
+      return detailData.ownedSkins?.some((id: string) => {
+        const lowerId = id.toLowerCase()
+        return lowerId === sprayUuid || levelUuids.includes(lowerId)
+      })
+    })
+  })()
+
+  const filteredAgents = ownedAgents.filter((agent: any) =>
+    agent.displayName.toLowerCase().includes(agentSearch.toLowerCase().trim())
+  )
+
+  const filteredCards = ownedCards.filter((card: any) =>
+    card.displayName.toLowerCase().includes(cardSearch.toLowerCase().trim())
+  )
+
+  const filteredBuddies = ownedBuddies.filter((buddy: any) =>
+    buddy.displayName.toLowerCase().includes(buddySearch.toLowerCase().trim())
+  )
+
+  const filteredSprays = ownedSprays.filter((spray: any) =>
+    spray.displayName.toLowerCase().includes(spraySearch.toLowerCase().trim())
+  )
+
   const rankTier = detailData.rank?.LatestCompetitiveUpdate?.TierAfterUpdate || 0
   const rankInfo = competitiveTiersData?.[competitiveTiersData.length - 1]?.tiers?.find(
     (t: any) => t.tier === rankTier
@@ -211,17 +335,17 @@ export default function ShopDetailPage({ params }: ShopDetailPageProps) {
         playerCardsData={playerCardsData || []}
       />
 
-      <main 
+      <main
         className="flex-1 px-4 py-8 mt-16 bg-cover bg-center bg-no-repeat min-h-[calc(100vh-64px)] relative"
         style={{ backgroundImage: "url('https://pbs.twimg.com/media/FfM55w5WIAAxH06?format=jpg&name=large')" }}
       >
         <div className="absolute inset-0 bg-black/80 backdrop-blur-xs z-0" />
 
         <div className="max-w-[1480px] mx-auto relative z-10 pt-4 pb-16">
-          
+
           {/* Back button */}
-          <Link 
-            href="/shop" 
+          <Link
+            href="/shop"
             className="inline-flex items-center gap-2 text-zinc-500 hover:text-white text-xs font-bold uppercase tracking-wider mb-8 transition-colors group"
           >
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
@@ -251,7 +375,7 @@ export default function ShopDetailPage({ params }: ShopDetailPageProps) {
                 </div>
                 <div className="flex items-center gap-4 mt-2 text-[10px] text-zinc-500 font-bold uppercase tracking-widest">
                   <span className="flex items-center gap-1"><Compass className="w-3.5 h-3.5 text-[#FF4655]" /> Region: <span className="text-white font-black">{detailData.affinity || 'AP'}</span></span>
-                  <span className="flex items-center gap-1"><Hash className="w-3.5 h-3.5 text-[#FF4655]" /> Level: <span className="text-white font-black">{detailData.wallet ? 'Level Active' : 'Level N/A'}</span></span>
+                  <span className="flex items-center gap-1"><Hash className="w-3.5 h-3.5 text-[#FF4655]" /> Level: <span className="text-white font-black">{accountLevel}</span></span>
                 </div>
               </div>
             </div>
@@ -282,23 +406,24 @@ export default function ShopDetailPage({ params }: ShopDetailPageProps) {
           </div>
 
           {/* Sub Navigation Tabs */}
-          <div className="flex border-b border-zinc-800 mb-8 bg-[#0f1923]/40">
+          <div className="flex flex-wrap border-b border-zinc-800 mb-8 bg-[#0f1923]/40">
             {[
               { id: 'details', label: 'LISTING DETAILS' },
-              { id: 'loadout', label: 'EQUIPPED LOADOUT' },
-              { id: 'skins', label: `OWNED SKINS (${detailData.ownedSkins?.length || 0})` },
-              { id: 'history', label: `MATCH HISTORY (${detailData.matchHistory?.History?.length || 0})` },
+              { id: 'skins', label: `OWNED SKINS (${ownedWeaponSkins.length})` },
+              { id: 'agents', label: `OWNED AGENTS (${ownedAgents.length})` },
+              { id: 'cards', label: `OWNED CARDS (${ownedCards.length})` },
+              { id: 'buddies', label: `OWNED BUDDIES (${ownedBuddies.length})` },
+              { id: 'sprays', label: `OWNED SPRAYS (${ownedSprays.length})` },
             ].map((tab) => {
               const isActive = activeTab === tab.id
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as TabId)}
-                  className={`px-6 py-4 text-xs font-black uppercase tracking-wider transition-all duration-300 relative border-b-2 cursor-pointer ${
-                    isActive 
-                      ? 'text-white border-[#FF4655] bg-white/2' 
-                      : 'text-zinc-500 border-transparent hover:text-zinc-300 hover:bg-white/1'
-                  }`}
+                  className={`px-6 py-4 text-xs font-black uppercase tracking-wider transition-all duration-300 relative border-b-2 cursor-pointer ${isActive
+                    ? 'text-white border-[#FF4655] bg-white/2'
+                    : 'text-zinc-500 border-transparent hover:text-zinc-300 hover:bg-white/1'
+                    }`}
                 >
                   {tab.label}
                 </button>
@@ -308,7 +433,7 @@ export default function ShopDetailPage({ params }: ShopDetailPageProps) {
 
           {/* Tab Contents */}
           <div className="min-h-[500px]">
-            
+
             {/* 1. Tab Details */}
             {activeTab === 'details' && (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-300">
@@ -349,16 +474,15 @@ export default function ShopDetailPage({ params }: ShopDetailPageProps) {
                           {rankInfo?.smallIcon && (
                             <img src={rankInfo.smallIcon} alt="" className="w-5 h-5" />
                           )}
-                          <span className="text-white font-black">{rankInfo?.displayName || 'Unranked'}</span>
+                          <span className="text-white font-black">{rankInfo?.tierName || 'Unranked'}</span>
                         </div>
                       </div>
                       <div className="flex items-center justify-between text-xs border-t border-zinc-800/60 pt-3">
                         <span className="text-zinc-500 font-bold uppercase flex items-center gap-1.5"><Info className="w-3.5 h-3.5 text-[#FF4655]" /> Listing Status:</span>
-                        <span className={`px-2 py-0.5 text-[10px] font-black uppercase leading-none rounded ${
-                          listing.status === 'active' 
-                            ? 'bg-green-500/10 text-green-400 border border-green-500/20' 
-                            : 'bg-zinc-800 text-zinc-500 border border-zinc-700'
-                        }`}>
+                        <span className={`px-2 py-0.5 text-[10px] font-black uppercase leading-none rounded ${listing.status === 'active'
+                          ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                          : 'bg-zinc-800 text-zinc-500 border border-zinc-700'
+                          }`}>
                           {listing.status === 'active' ? 'Active' : listing.status === 'sold' ? 'Sold' : 'Cancelled'}
                         </span>
                       </div>
@@ -368,51 +492,259 @@ export default function ShopDetailPage({ params }: ShopDetailPageProps) {
               </div>
             )}
 
-            {/* 2. Tab Loadout */}
-            {activeTab === 'loadout' && (
-              <div className="animate-in fade-in duration-300">
-                <WeaponLoadout
-                  loadout={detailData.loadout}
-                  weaponsData={weaponsData}
-                  buddiesData={buddiesData}
-                  playerCardsData={playerCardsData}
-                  user={detailData.user}
-                  ownedSkins={detailData.ownedSkins}
-                  contractsData={contractsData}
-                  onWeaponClick={() => {}}
-                  onPlayerCardClick={() => {}}
-                  skinPricesData={skinPricesData}
-                />
-              </div>
-            )}
-
-            {/* 3. Tab Skins */}
+            {/* 2. Tab Skins */}
             {activeTab === 'skins' && (
               <div className="animate-in fade-in duration-300">
                 <OwnedSkinsGrid
                   weaponsData={weaponsData}
                   ownedSkins={detailData.ownedSkins || []}
                   contractsData={contractsData}
-                  onSkinClick={() => {}}
+                  onSkinClick={() => { }}
                   skinPricesData={skinPricesData}
                 />
               </div>
             )}
-
-            {/* 4. Tab History */}
-            {activeTab === 'history' && (
+            {/* 3. Tab Agents */}
+            {activeTab === 'agents' && (
               <div className="animate-in fade-in duration-300">
-                <MatchHistory
-                  puuid={detailData.puuid}
-                  rankData={detailData.rank}
-                  matchHistory={detailData.matchHistory}
-                  competitiveUpdates={detailData.competitiveUpdates}
-                  matchDetails={detailData.matchDetails}
-                  mapsData={mapsData}
-                  competitiveTiersData={competitiveTiersData}
-                  gameModesData={gameModesData}
-                  agentsData={agentsData}
-                />
+                <div className="mb-6 relative w-full md:w-96 group">
+                  <input
+                    type="text"
+                    placeholder="Search owned agents..."
+                    value={agentSearch}
+                    onChange={(e) => setAgentSearch(e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-md py-2.5 pl-10 pr-8 text-xs text-zinc-300 placeholder:text-zinc-655 focus:outline-none focus:border-teal-500/50 focus:ring-1 focus:ring-teal-500/20 transition-all shadow-inner focus:bg-zinc-950"
+                  />
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-teal-400 transition-colors pointer-events-none"
+                  >
+                    <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
+                  </svg>
+                  {agentSearch && (
+                    <button
+                      onClick={() => setAgentSearch('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-red-500 transition-colors p-1"
+                    >
+                      <svg xmlns="http://www.w3.org/2055/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 6 6 18" /><path d="m6 6 12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+                {filteredAgents.length === 0 ? (
+                  <div className="bg-[#0f1923]/40 border border-zinc-900 py-16 flex flex-col items-center justify-center text-center">
+                    <p className="text-zinc-555 text-xs font-bold uppercase tracking-wider">No agents found</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12 gap-4">
+                    {filteredAgents.map((agent: any) => (
+                      <div
+                        key={agent.uuid}
+                        className="bg-[#0f1923]/60 border border-zinc-800 hover:border-teal-500/50 p-2 flex items-center justify-center transition-all duration-300 relative group aspect-square rounded-md overflow-hidden"
+                        title={agent.displayName}
+                      >
+                        <img
+                          src={agent.displayIcon}
+                          alt={agent.displayName}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                          loading="lazy"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 4. Tab Cards */}
+            {activeTab === 'cards' && (
+              <div className="animate-in fade-in duration-300">
+                <div className="mb-6 relative w-full md:w-96 group">
+                  <input
+                    type="text"
+                    placeholder="Search owned player cards..."
+                    value={cardSearch}
+                    onChange={(e) => setCardSearch(e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-md py-2.5 pl-10 pr-8 text-xs text-zinc-300 placeholder:text-zinc-655 focus:outline-none focus:border-teal-500/50 focus:ring-1 focus:ring-teal-500/20 transition-all shadow-inner focus:bg-zinc-950"
+                  />
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-teal-400 transition-colors pointer-events-none"
+                  >
+                    <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
+                  </svg>
+                  {cardSearch && (
+                    <button
+                      onClick={() => setCardSearch('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-red-500 transition-colors p-1"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 6 6 18" /><path d="m6 6 12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+                {filteredCards.length === 0 ? (
+                  <div className="bg-[#0f1923]/40 border border-zinc-900 py-16 flex flex-col items-center justify-center text-center">
+                    <p className="text-zinc-555 text-xs font-bold uppercase tracking-wider">No player cards found</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-4">
+                    {filteredCards.map((card: any) => (
+                      <div
+                        key={card.uuid}
+                        className="bg-[#0f1923]/60 border border-zinc-800 hover:border-teal-500/50 p-2 flex items-center justify-center transition-all duration-300 relative group aspect-square rounded-md overflow-hidden"
+                        title={card.displayName}
+                      >
+                        <img
+                          src={card.displayIcon}
+                          alt={card.displayName}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                          loading="lazy"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 5. Tab Buddies */}
+            {activeTab === 'buddies' && (
+              <div className="animate-in fade-in duration-300">
+                <div className="mb-6 relative w-full md:w-96 group">
+                  <input
+                    type="text"
+                    placeholder="Search owned buddies..."
+                    value={buddySearch}
+                    onChange={(e) => setBuddySearch(e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-md py-2.5 pl-10 pr-8 text-xs text-zinc-300 placeholder:text-zinc-655 focus:outline-none focus:border-teal-500/50 focus:ring-1 focus:ring-teal-500/20 transition-all shadow-inner focus:bg-zinc-950"
+                  />
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-teal-400 transition-colors pointer-events-none"
+                  >
+                    <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
+                  </svg>
+                  {buddySearch && (
+                    <button
+                      onClick={() => setBuddySearch('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-red-500 transition-colors p-1"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 6 6 18" /><path d="m6 6 12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+                {filteredBuddies.length === 0 ? (
+                  <div className="bg-[#0f1923]/40 border border-zinc-900 py-16 flex flex-col items-center justify-center text-center">
+                    <p className="text-zinc-555 text-xs font-bold uppercase tracking-wider">No buddies found</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-5">
+                    {filteredBuddies.map((buddy: any) => (
+                      <div
+                        key={buddy.uuid}
+                        className="bg-[#0f1923]/60 border border-zinc-800 hover:border-teal-500/50 hover:bg-teal-500/5 p-4 flex flex-col items-center justify-center text-center transition-all duration-300 relative group aspect-square"
+                      >
+                        <div className="size-16 relative flex items-center justify-center mb-2 drop-shadow-[0_4px_8px_rgba(0,0,0,0.6)]">
+                          <img
+                            src={buddy.displayIcon}
+                            alt={buddy.displayName}
+                            className="max-w-full max-h-full object-contain transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6"
+                            loading="lazy"
+                          />
+                        </div>
+                        <span className="text-[9px] text-zinc-400 font-bold tracking-wide truncate w-full px-1 mt-1 group-hover:text-white transition-colors" title={buddy.displayName}>
+                          {buddy.displayName}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 6. Tab Sprays */}
+            {activeTab === 'sprays' && (
+              <div className="animate-in fade-in duration-300">
+                <div className="mb-6 relative w-full md:w-96 group">
+                  <input
+                    type="text"
+                    placeholder="Search owned sprays..."
+                    value={spraySearch}
+                    onChange={(e) => setSpraySearch(e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-md py-2.5 pl-10 pr-8 text-xs text-zinc-300 placeholder:text-zinc-655 focus:outline-none focus:border-teal-500/50 focus:ring-1 focus:ring-teal-500/20 transition-all shadow-inner focus:bg-zinc-950"
+                  />
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-teal-400 transition-colors pointer-events-none"
+                  >
+                    <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
+                  </svg>
+                  {spraySearch && (
+                    <button
+                      onClick={() => setSpraySearch('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-red-500 transition-colors p-1"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 6 6 18" /><path d="m6 6 12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+                {filteredSprays.length === 0 ? (
+                  <div className="bg-[#0f1923]/40 border border-zinc-900 py-16 flex flex-col items-center justify-center text-center">
+                    <p className="text-zinc-555 text-xs font-bold uppercase tracking-wider">No sprays found</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-5">
+                    {filteredSprays.map((spray: any) => (
+                      <div
+                        key={spray.uuid}
+                        className="bg-[#0f1923]/60 border border-zinc-800 hover:border-teal-500/50 hover:bg-teal-500/5 p-4 flex flex-col items-center justify-center text-center transition-all duration-300 relative group aspect-square"
+                      >
+                        <div className="size-16 relative flex items-center justify-center mb-2 drop-shadow-[0_4px_8px_rgba(0,0,0,0.6)]">
+                          <img
+                            src={spray.displayIcon || spray.fullIcon}
+                            alt={spray.displayName}
+                            className="max-w-full max-h-full object-contain transition-transform duration-500 group-hover:scale-110"
+                            loading="lazy"
+                          />
+                        </div>
+                        <span className="text-[9px] text-zinc-400 font-bold tracking-wide truncate w-full px-1 mt-1 group-hover:text-white transition-colors" title={spray.displayName}>
+                          {spray.displayName}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -430,7 +762,7 @@ export default function ShopDetailPage({ params }: ShopDetailPageProps) {
         maxWidth="md"
       >
         <div className="p-6 md:p-8 flex flex-col gap-5 bg-[#0f1923]">
-          
+
           <div className="p-4 bg-teal-500/10 border border-teal-500/30 flex items-start gap-3">
             <MessageSquare className="w-5 h-5 text-teal-400 shrink-0 mt-0.5" />
             <div className="flex flex-col gap-1">

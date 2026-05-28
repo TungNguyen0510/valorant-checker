@@ -150,6 +150,24 @@ export interface GetListingsOptions {
   skins?: string[];
 }
 
+function extractAccountLevel(data: any): number {
+  if (data?.accountXP?.Progress?.Level) {
+    return data.accountXP.Progress.Level;
+  }
+  const puuid = data?.puuid;
+  if (puuid && Array.isArray(data.matchDetails)) {
+    for (const match of data.matchDetails) {
+      if (match && Array.isArray(match.players)) {
+        const me = match.players.find((p: any) => p.subject === puuid);
+        if (me && typeof me.accountLevel === 'number') {
+          return me.accountLevel;
+        }
+      }
+    }
+  }
+  return 0;
+}
+
 export async function getListings(options: GetListingsOptions) {
   try {
     const page = Math.max(1, options.page);
@@ -257,6 +275,9 @@ export async function getListings(options: GetListingsOptions) {
         rank: data.rank ? {
           LatestCompetitiveUpdate: data.rank.LatestCompetitiveUpdate,
         } : null,
+        ownedSkins: data.ownedSkins || [],
+        accountLevel: extractAccountLevel(data),
+        accountXP: data.accountXP || null,
         ownedSkinsCount: Array.isArray(data.ownedSkins) ? data.ownedSkins.length : 0,
       } : null;
 
@@ -332,6 +353,8 @@ export async function getListingById(id: string) {
       matchHistory: data.matchHistory,
       competitiveUpdates: data.competitiveUpdates,
       matchDetails: data.matchDetails,
+      accountLevel: extractAccountLevel(data),
+      accountXP: data.accountXP || null,
     } : null;
 
     return {
