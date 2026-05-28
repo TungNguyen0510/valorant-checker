@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import * as db from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   const { userId } = await auth();
   if (!userId) {

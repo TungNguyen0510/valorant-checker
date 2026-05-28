@@ -10,8 +10,10 @@ const CLIENT_PLATFORM = Buffer.from(
 let cachedVersion = ''
 
 async function getValorantVersion() {
-  if (cachedVersion) return cachedVersion
-  const resp = await fetch('https://valorant-api.com/v1/version', { next: { revalidate: 3600 } })
+  if (cachedVersion && process.env.NODE_ENV === 'production') return cachedVersion
+  const resp = await fetch('https://valorant-api.com/v1/version', { 
+    next: process.env.NODE_ENV === 'production' ? { revalidate: 3600 } : { revalidate: 0 } 
+  })
   if (!resp.ok) throw new Error('Failed to fetch Valorant version')
   const json = await resp.json()
   cachedVersion = json.data.riotClientVersion
@@ -169,7 +171,7 @@ async function fetchMatchDetails(matchId: string, accessToken: string, entitleme
       'X-Riot-ClientPlatform': CLIENT_PLATFORM,
       'X-Riot-ClientVersion': version,
     },
-    cache: 'force-cache',
+    cache: process.env.NODE_ENV === 'production' ? 'force-cache' : 'no-store',
   })
   return resp.ok ? resp.json() : null
 }

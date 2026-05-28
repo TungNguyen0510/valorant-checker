@@ -3,6 +3,8 @@ import { auth } from '@clerk/nextjs/server';
 import * as db from '@/lib/db';
 import { getValorantData } from '@/lib/valorant';
 
+export const dynamic = 'force-dynamic';
+
 function summarizeAccount(account: any) {
   const { accessToken, idToken, data, ...rest } = account;
   

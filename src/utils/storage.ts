@@ -8,7 +8,13 @@ export interface Account {
 
 export async function getAccounts(): Promise<Account[]> {
   try {
-    const res = await fetch('/api/accounts');
+    const res = await fetch(`/api/accounts?t=${Date.now()}`, {
+      cache: 'no-store',
+      headers: {
+        'Pragma': 'no-cache',
+        'Cache-Control': 'no-cache',
+      },
+    });
     if (!res.ok) return [];
     return res.json();
   } catch (err) {
@@ -18,7 +24,13 @@ export async function getAccounts(): Promise<Account[]> {
 }
 
 export async function getAccount(id: string): Promise<Account> {
-  const res = await fetch(`/api/accounts/${id}`);
+  const res = await fetch(`/api/accounts/${id}?t=${Date.now()}`, {
+    cache: 'no-store',
+    headers: {
+      'Pragma': 'no-cache',
+      'Cache-Control': 'no-cache',
+    },
+  });
   if (!res.ok) {
     const errData = await res.json().catch(() => ({}));
     const error = new Error(errData.error || 'Failed to fetch account');
@@ -68,7 +80,13 @@ export async function deleteAccount(id: string) {
 
 export async function getActiveAccountId(): Promise<string | null> {
   try {
-    const res = await fetch('/api/accounts/active');
+    const res = await fetch(`/api/accounts/active?t=${Date.now()}`, {
+      cache: 'no-store',
+      headers: {
+        'Pragma': 'no-cache',
+        'Cache-Control': 'no-cache',
+      },
+    });
     if (!res.ok) return null;
     const data = await res.json();
     return data.id;

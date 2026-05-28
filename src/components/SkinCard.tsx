@@ -1,5 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
-import { TIER_STYLES, TIER_ICONS, DEFAULT_STYLE } from '@/constants/valorant'
+import { TIER_STYLES, DEFAULT_STYLE } from '@/constants/valorant'
 import { VPIcon } from './Icons'
 
 interface SkinCardProps {
@@ -60,12 +60,6 @@ export const SkinCard = ({
 
         {/* Weapon Image container */}
         <div className={`flex-1 flex items-center justify-center p-4 relative cursor-pointer ${cardStyle}`}>
-          {/* Tier Icon Background */}
-          {skin?.contentTierUuid && TIER_ICONS[skin.contentTierUuid] && (
-            <div className="absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none p-10">
-              <img src={TIER_ICONS[skin.contentTierUuid]} alt="Tier" className="w-full h-full object-contain" />
-            </div>
-          )}
           <img
             src={skin?.chromas?.[0]?.displayIcon || skin?.chromas?.[0]?.fullRender || skin?.displayIcon || skin?.levels?.[0]?.displayIcon}
             alt={skin?.displayName}
@@ -90,9 +84,8 @@ export const SkinCard = ({
     >
       <div className={`flex-1 min-h-[160px] flex items-center justify-center p-6 relative ${cardStyle}`}>
         {/* Tier Icon Background */}
-        {skin?.contentTierUuid && TIER_ICONS[skin.contentTierUuid] && (
+        {skin?.contentTierUuid && (
           <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none p-8">
-            <img src={TIER_ICONS[skin.contentTierUuid]} alt="Tier" className="w-full h-full object-contain" />
           </div>
         )}
         {isLoading ? (
@@ -130,6 +123,17 @@ export const SkinCard = ({
             </div>
           )}
         </div>
+
+        {discount !== undefined && discount > 0 && (
+          <div className="flex items-center justify-between">
+            <span className="bg-[#ff4655] text-white font-black text-[9px] px-1.5 py-0.5 skew-x-[-15deg] leading-none">
+              -{discount}%
+            </span>
+            <span className="text-yellow-500 font-extrabold text-[9px] uppercase tracking-widest">
+              In Bundle
+            </span>
+          </div>
+        )}
       </div>
     </div>
   )

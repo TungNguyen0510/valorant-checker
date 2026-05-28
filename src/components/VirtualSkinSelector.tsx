@@ -296,7 +296,7 @@ export const VirtualSkinSelector = ({
                   <img
                     src={selectedChroma?.fullRender || selectedChroma?.displayIcon || selectedLevel?.displayIcon || selectedSkin.displayIcon}
                     alt={selectedSkin.displayName}
-                    className={`w-full h-auto max-h-[160px] object-contain drop-shadow-[0_12px_24px_rgba(0,0,0,0.7)] transition-all duration-500 ${weapon.displayName === 'Melee' ? 'rotate-45' : ''}`}
+                    className={`w-auto max-w-[60%] h-auto max-h-[120px] object-contain drop-shadow-[0_12px_24px_rgba(0,0,0,0.7)] transition-all duration-500 ${weapon.displayName === 'Melee' ? 'rotate-45' : ''}`}
                   />
 
                   {/* Visual Buddy indicator if equipped */}
@@ -308,7 +308,7 @@ export const VirtualSkinSelector = ({
                   )}
                 </div>
 
-                <div className="space-y-5 border-t border-zinc-850 pt-5">
+                <div className="space-y-5 border-t border-zinc-850 pt-5 px-2">
                   {/* Levels */}
                   {selectedSkin.levels?.length > 1 && (
                     <div className="flex flex-col gap-2">

@@ -209,7 +209,7 @@ export const SkinSelector = ({
                   className={`relative flex flex-col border transition-all duration-300 cursor-pointer group ${isSelected
                     ? 'bg-teal-500/10 border-teal-500 shadow-[0_0_20px_rgba(20,184,166,0.15)] z-10'
                     : 'bg-zinc-900/40 border-zinc-800/50 hover:border-zinc-700 hover:bg-zinc-800/30'
-                    } ${!owned ? 'opacity-50' : ''}`}
+                    }`}
                 >
                   {/* Weapon Preview Area */}
                   <div className="aspect-4/3 flex items-center justify-center bg-black/40 border border-white/5 overflow-hidden transition-all relative mb-2">
@@ -276,7 +276,7 @@ export const SkinSelector = ({
             <img
               src={selectedChroma?.fullRender || selectedChroma?.displayIcon || selectedLevel?.displayIcon || selectedSkin.displayIcon}
               alt={selectedSkin.displayName}
-              className={`w-full h-auto max-h-[200px] object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.8)] transition-all duration-700 animate-in zoom-in-95 ${weapon.displayName === 'Melee' ? 'rotate-45' : ''}`}
+              className={`w-auto max-w-[60%] h-auto max-h-[130px] object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.8)] transition-all duration-700 animate-in zoom-in-95 ${weapon.displayName === 'Melee' ? 'rotate-45' : ''}`}
             />
           </div>
 
@@ -342,7 +342,7 @@ export const SkinSelector = ({
                         className={`w-12 h-12 border transition-all duration-300 p-0.5 ${isSelected
                           ? 'border-teal-500 scale-110 shadow-lg shadow-teal-500/20'
                           : 'border-zinc-800 hover:border-zinc-600'
-                          } ${!isOwned && !isSelected ? 'opacity-40' : ''}`}
+                          }`}
                       >
                         <div className="w-full h-full bg-zinc-800 relative overflow-hidden">
                           {chroma.swatch ? (
