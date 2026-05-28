@@ -7,6 +7,7 @@ import * as storage from '@/utils/storage'
 import Link from 'next/link'
 import { OwnedSkinsGrid } from '@/components/OwnedSkinsGrid'
 import { BaseDialog } from '@/components/BaseDialog'
+import { SkinSelector } from '@/components/SkinSelector'
 import { ArrowLeft, User, DollarSign, Calendar, MessageSquare, Info, ShieldAlert, Award, Hash, Compass } from 'lucide-react'
 
 // Tab type definition
@@ -30,6 +31,15 @@ export default function ShopDetailPage({ params }: ShopDetailPageProps) {
   const [cardSearch, setCardSearch] = useState('')
   const [buddySearch, setBuddySearch] = useState('')
   const [spraySearch, setSpraySearch] = useState('')
+
+  // Skin selector modal states
+  const [selectedWeaponForModal, setSelectedWeaponForModal] = useState<any>(null)
+  const [selectedSkinIdForModal, setSelectedSkinIdForModal] = useState<string | undefined>(undefined)
+
+  const handleSkinClick = (weapon: any, skinId: string) => {
+    setSelectedWeaponForModal(weapon)
+    setSelectedSkinIdForModal(skinId)
+  }
 
   // Load user accounts for Header Switcher
   useEffect(() => {
@@ -117,28 +127,10 @@ export default function ShopDetailPage({ params }: ShopDetailPageProps) {
     }
   })
 
-  const { data: mapsData } = useQuery({
-    queryKey: ['maps'],
-    queryFn: async () => {
-      const res = await fetch('https://valorant-api.com/v1/maps')
-      const json = await res.json()
-      return json.data
-    }
-  })
-
   const { data: competitiveTiersData } = useQuery({
     queryKey: ['competitiveTiers'],
     queryFn: async () => {
       const res = await fetch('https://valorant-api.com/v1/competitivetiers')
-      const json = await res.json()
-      return json.data
-    }
-  })
-
-  const { data: gameModesData } = useQuery({
-    queryKey: ['gameModes'],
-    queryFn: async () => {
-      const res = await fetch('https://valorant-api.com/v1/gamemodes')
       const json = await res.json()
       return json.data
     }
@@ -365,7 +357,7 @@ export default function ShopDetailPage({ params }: ShopDetailPageProps) {
 
               <div className="flex flex-col leading-tight">
                 <div className="flex items-center gap-2">
-                  <h1 className="text-xl md:text-3xl font-black uppercase text-white truncate max-w-[280px]">
+                  <h1 className="text-xl md:text-3xl font-black text-white truncate max-w-[300px]">
                     {account.name}
                     <span className="text-zinc-500 font-bold text-sm md:text-base ml-1">#{account.tag}</span>
                   </h1>
@@ -383,7 +375,7 @@ export default function ShopDetailPage({ params }: ShopDetailPageProps) {
             <div className="flex items-center justify-between md:justify-end gap-8 w-full md:w-auto border-t md:border-t-0 border-zinc-800 pt-4 md:pt-0">
               {/* Price */}
               <div className="flex flex-col md:text-right">
-                <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest leading-none mb-1">Asking Price</span>
+                <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest leading-none mb-1">Price</span>
                 <span className="text-2xl md:text-4xl font-heading font-black text-[#FF4655] italic tracking-tight">
                   {listing.price.toLocaleString('vi-VN')} đ
                 </span>
@@ -462,7 +454,7 @@ export default function ShopDetailPage({ params }: ShopDetailPageProps) {
                     <div className="flex flex-col gap-3.5">
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-zinc-500 font-bold uppercase flex items-center gap-1.5"><User className="w-3.5 h-3.5 text-[#FF4655]" /> Seller:</span>
-                        <span className="text-white font-black truncate max-w-[150px]" title={listing.sellerId}>ID: {listing.sellerId.substring(0, 10)}...</span>
+                        <span className="text-white font-black truncate max-w-[150px]" title={listing.sellerId}>{listing.sellerName || listing.sellerId}</span>
                       </div>
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-zinc-500 font-bold uppercase flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-[#FF4655]" /> Date Listed:</span>
@@ -499,7 +491,7 @@ export default function ShopDetailPage({ params }: ShopDetailPageProps) {
                   weaponsData={weaponsData}
                   ownedSkins={detailData.ownedSkins || []}
                   contractsData={contractsData}
-                  onSkinClick={() => { }}
+                  onSkinClick={handleSkinClick}
                   skinPricesData={skinPricesData}
                 />
               </div>
@@ -766,7 +758,7 @@ export default function ShopDetailPage({ params }: ShopDetailPageProps) {
           <div className="p-4 bg-teal-500/10 border border-teal-500/30 flex items-start gap-3">
             <MessageSquare className="w-5 h-5 text-teal-400 shrink-0 mt-0.5" />
             <div className="flex flex-col gap-1">
-              <span className="text-[10px] text-zinc-555 font-bold uppercase tracking-widest">SELLER CONTACT DETAILS</span>
+              <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">SELLER CONTACT DETAILS</span>
               <span className="text-white text-base font-black selection:bg-teal-500 selection:text-white">
                 {listing.contactInfo}
               </span>
@@ -776,7 +768,7 @@ export default function ShopDetailPage({ params }: ShopDetailPageProps) {
           <div className="p-4 bg-[#FF4655]/10 border border-[#FF4655]/30 flex items-start gap-3">
             <ShieldAlert className="w-5 h-5 text-[#FF4655] shrink-0 mt-0.5" />
             <div className="flex flex-col gap-1">
-              <span className="text-[10px] text-zinc-555 font-bold uppercase tracking-widest">SAFE TRANSACTION NOTICE</span>
+              <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">SAFE TRANSACTION NOTICE</span>
               <p className="text-zinc-400 text-xs leading-relaxed font-medium">
                 Please contact the seller directly using the details provided above to negotiate and finalize the transaction. Valorant Checker does not act as an escrow mediator and is not liable for account disputes occurring outside our system. Transact with caution!
               </p>
@@ -791,6 +783,19 @@ export default function ShopDetailPage({ params }: ShopDetailPageProps) {
           </button>
         </div>
       </BaseDialog>
+
+      {selectedWeaponForModal && (
+        <SkinSelector
+          weapon={selectedWeaponForModal}
+          ownedSkins={detailData.ownedSkins || []}
+          loadout={detailData.loadout || {}}
+          onClose={() => {
+            setSelectedWeaponForModal(null)
+            setSelectedSkinIdForModal(undefined)
+          }}
+          initialSkinId={selectedSkinIdForModal}
+        />
+      )}
     </div>
   )
 }

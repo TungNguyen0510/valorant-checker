@@ -4,6 +4,13 @@ export interface Account {
   tag: string; // tag_line
   lastUpdated: number;
   data: any; // Entire JSON result from /api/info
+  listing?: {
+    id: string;
+    price: number;
+    description: string | null;
+    status: string;
+    contactInfo: string;
+  } | null;
 }
 
 export async function getAccounts(): Promise<Account[]> {

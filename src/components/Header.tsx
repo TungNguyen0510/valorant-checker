@@ -7,6 +7,7 @@ import { Account } from '@/utils/storage'
 import { Logo } from './Logo'
 import LandingButtons from './LandingButtons'
 import { HelpCircle } from 'lucide-react'
+import { usePathname } from 'next/navigation'
 
 interface AccountSwitcherProps {
   accounts: Account[]
@@ -59,8 +60,8 @@ const AccountSwitcher = ({
                 </div>
               )}
             </div>
-            <span className="truncate max-w-[120px]">{activeAccount.name}</span>
-            <span className="text-zinc-500 text-xs">#{activeAccount.tag}</span>
+            <span className="hidden md:block truncate max-w-[120px]">{activeAccount.name}</span>
+            <span className="hidden md:block text-zinc-500 text-xs">#{activeAccount.tag}</span>
           </>
         ) : (
           <span className="text-zinc-400">Select Account</span>
@@ -185,32 +186,19 @@ export const Header = ({
   showLandingButtons = false,
 }: HeaderProps) => {
   const hasAccounts = accounts.length > 0
+  const url = usePathname()
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-black/50 backdrop-blur-xl">
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
         <div className="flex items-center gap-8">
           <Logo />
-          <nav className="hidden md:flex items-center gap-6">
-            <Link
-              href="/dashboard"
-              className="text-xs font-black uppercase tracking-widest text-zinc-400 hover:text-[#FF4655] transition-colors"
-            >
-              Dashboard
-            </Link>
-            <Link
-              href="/shop"
-              className="text-xs font-black uppercase tracking-widest text-zinc-400 hover:text-[#FF4655] transition-colors"
-            >
-              Shop
-            </Link>
-          </nav>
         </div>
 
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-4">
             {showLandingButtons ? (
-              <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2">
                 <Link
                   href="/faq"
                   className="hidden sm:flex items-center gap-2 text-zinc-400 hover:text-[#FF4655] transition-all duration-300 uppercase font-bold tracking-[0.2em] text-sm group"
@@ -218,11 +206,28 @@ export const Header = ({
                   <HelpCircle className="w-3.5 h-3.5 text-zinc-500 group-hover:text-[#FF4655] transition-colors" />
                   <span>FAQ</span>
                 </Link>
+                <Link
+                  href="/shop"
+                  className="px-6 py-2 border border-[#ECE8E1]/20 hover:border-[#FF4655] transition-all duration-300 font-bold uppercase tracking-widest text-sm"
+                >
+                  Shop
+                </Link>
                 <LandingButtons />
               </div>
             ) : (
               <SignedIn>
-                {hasAccounts && (
+                {
+                  url === "/dashboard" ? (
+                    <Link
+                      href="/shop"
+                      className="px-4 py-2 text-[10px] md:text-xs font-black uppercase tracking-widest transition-all duration-300 text-white bg-[#FF4655] shadow-[4px_4px_0px_0px_rgba(255,70,85,0.3)]"
+                    >
+                      Shop
+                    </Link>
+                  ) : <LandingButtons />
+                }
+
+                {hasAccounts && url !== "/shop" && (
                   <AccountSwitcher
                     accounts={accounts}
                     activeAccountId={activeAccountId}

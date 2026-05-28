@@ -14,7 +14,7 @@ export const Logo = ({ className = "" }: LogoProps) => {
         {/* Glow effect */}
         <div className="absolute inset-0 bg-[#FF4655]/40 blur-md -z-10 group-hover:opacity-100 opacity-0 transition-opacity" />
       </Link>
-      <div className="flex flex-col">
+      <div className="hidden md:flex flex-col">
         <Link href="/">
           <h1 className="text-xl font-black tracking-tighter text-white uppercase italic leading-none hover:text-[#FF4655]/90 transition-colors">
             Valorant <span className="text-[#FF4655]">Checker</span>

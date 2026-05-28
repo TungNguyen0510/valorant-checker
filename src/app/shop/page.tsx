@@ -202,8 +202,14 @@ export default function ShopPage() {
         if (seen.has(normalized)) return
         seen.add(normalized)
 
+        const uuids = [
+          skin.uuid,
+          ...(skin.levels?.map((l: any) => l.uuid) || []),
+          ...(skin.chromas?.map((c: any) => c.uuid) || [])
+        ].filter(Boolean)
+
         list.push({
-          uuid: skin.uuid,
+          uuid: Array.from(new Set(uuids)).join('|'),
           displayName: skin.displayName,
           displayIcon: skin.chromas?.[0]?.displayIcon || skin.displayIcon || skin.levels?.[0]?.displayIcon,
           contentTierUuid: skin.contentTierUuid
@@ -228,8 +234,12 @@ export default function ShopPage() {
     if (buddiesData) {
       buddiesData.forEach((buddy: any) => {
         if (!buddy || !buddy.displayName) return
+        const uuids = [
+          buddy.uuid,
+          ...(buddy.levels?.map((l: any) => l.uuid) || [])
+        ].filter(Boolean)
         list.push({
-          uuid: buddy.uuid,
+          uuid: Array.from(new Set(uuids)).join('|'),
           displayName: buddy.displayName,
           displayIcon: buddy.displayIcon,
           type: 'buddy'
@@ -252,8 +262,12 @@ export default function ShopPage() {
     if (spraysData) {
       spraysData.forEach((spray: any) => {
         if (!spray || !spray.displayName) return
+        const uuids = [
+          spray.uuid,
+          ...(spray.levels?.map((l: any) => l.uuid) || [])
+        ].filter(Boolean)
         list.push({
-          uuid: spray.uuid,
+          uuid: Array.from(new Set(uuids)).join('|'),
           displayName: spray.displayName,
           displayIcon: spray.displayIcon || spray.fullIcon,
           type: 'spray'
@@ -789,28 +803,28 @@ export default function ShopPage() {
 
                 <div className="relative group">
                   <div
-                    className="w-full bg-zinc-950 border border-zinc-800 focus-within:border-[#FF4655]/50 focus-within:ring-1 focus-within:ring-[#FF4655]/20 flex flex-wrap items-center gap-2 p-1 text-xs font-semibold rounded-md transition-all cursor-text min-h-[38px]"
+                    className="w-full bg-zinc-950 border border-zinc-800 focus-within:border-[#FF4655]/50 focus-within:ring-1 focus-within:ring-[#FF4655]/20 flex flex-wrap items-center gap-3 px-3 py-1.5 text-base font-semibold rounded-md transition-all cursor-text min-h-[60px]"
                     onClick={() => skinInputRef.current?.focus()}
                   >
                     {/* Selected Skins Chips inside the box */}
                     {selectedSkinsInput.map((skin) => (
                       <div
                         key={skin.uuid}
-                        className={`flex items-center gap-1.5 pl-2 pr-1 py-1 text-[10px] font-black tracking-wider rounded-md shrink-0 select-none ${getTierChipClass(skin.contentTierUuid)}`}
+                        className={`flex items-center gap-2 pl-3 pr-1.5 py-1.5 text-sm font-black tracking-wider rounded-md shrink-0 select-none ${getTierChipClass(skin.contentTierUuid)}`}
                       >
                         {skin.displayIcon && (
-                          <img src={skin.displayIcon} alt="" className="h-3.5 w-auto object-contain shrink-0" />
+                          <img src={skin.displayIcon} alt="" className="h-5 w-auto object-contain shrink-0" />
                         )}
-                        <span className="truncate max-w-[120px]">{skin.displayName}</span>
+                        <span className="truncate max-w-[200px]">{skin.displayName}</span>
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation()
                             removeSkin(skin.uuid)
                           }}
-                          className="text-zinc-550 hover:text-white p-0.5 transition-colors cursor-pointer"
+                          className="text-zinc-550 hover:text-white p-1 transition-colors cursor-pointer"
                         >
-                          <X className="w-3 h-3" />
+                          <X className="w-4 h-4" />
                         </button>
                       </div>
                     ))}
@@ -842,7 +856,7 @@ export default function ShopPage() {
                           }
                         }
                       }}
-                      className="flex-grow bg-transparent border-0 outline-none text-zinc-300 placeholder:text-zinc-655 min-w-[120px] p-0 focus:ring-0 focus:outline-none focus:border-transparent"
+                      className="grow bg-transparent border-0 outline-none text-zinc-300 placeholder:text-zinc-655 min-w-[200px] p-0 focus:ring-0 focus:outline-none focus:border-transparent text-base"
                     />
                   </div>
 
@@ -857,13 +871,13 @@ export default function ShopPage() {
                           key={skin.uuid}
                           type="button"
                           onClick={() => selectSkin(skin)}
-                          className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-zinc-900/50 cursor-pointer transition-colors text-xs font-bold text-left border-b border-zinc-900/40"
+                          className="w-full flex items-center justify-between px-6 py-4 hover:bg-zinc-900/50 cursor-pointer transition-colors text-base font-bold text-left border-b border-zinc-900/40"
                         >
-                          <div className="flex items-center gap-3 min-w-0">
+                          <div className="flex items-center gap-4 min-w-0">
                             {skin.displayIcon ? (
-                              <img src={skin.displayIcon} alt="" className="w-10 h-auto max-h-6 object-contain shrink-0" />
+                              <img src={skin.displayIcon} alt="" className="w-16 h-auto max-h-10 object-contain shrink-0" />
                             ) : (
-                              <div className="w-10 h-6 bg-zinc-900 shrink-0" />
+                              <div className="w-16 h-10 bg-zinc-900 shrink-0" />
                             )}
                             <span className="text-zinc-300 hover:text-white truncate">{skin.displayName}</span>
                           </div>
@@ -871,13 +885,13 @@ export default function ShopPage() {
                             <img
                               src={TIER_ICONS[skin.contentTierUuid]}
                               alt=""
-                              className="w-4 h-4 object-contain shrink-0 ml-2"
+                              className="w-6 h-6 object-contain shrink-0 ml-3"
                             />
                           )}
                         </button>
                       ))}
                       {visibleSkinsCount < filteredSkins.length && (
-                        <div className="px-4 py-2.5 text-center text-[10px] text-zinc-550 font-bold uppercase tracking-wider border-t border-zinc-900/40 animate-pulse bg-zinc-950">
+                        <div className="px-6 py-4 text-center text-base text-zinc-550 font-bold uppercase tracking-wider border-t border-zinc-900/40 animate-pulse bg-zinc-950">
                           Loading more skins...
                         </div>
                       )}
@@ -894,20 +908,20 @@ export default function ShopPage() {
 
                 <div className="relative group">
                   <div
-                    className="w-full bg-zinc-950 border border-zinc-800 focus-within:border-[#FF4655]/50 focus-within:ring-1 focus-within:ring-[#FF4655]/20 flex flex-wrap items-center gap-2 p-1 text-xs font-semibold rounded-md transition-all cursor-text min-h-[38px]"
+                    className="w-full bg-zinc-950 border border-zinc-800 focus-within:border-[#FF4655]/50 focus-within:ring-1 focus-within:ring-[#FF4655]/20 flex flex-wrap items-center gap-3 px-3 py-1.5 text-base font-semibold rounded-md transition-all cursor-text min-h-[60px]"
                     onClick={() => accessoryInputRef.current?.focus()}
                   >
                     {/* Selected Accessories Chips inside the box */}
                     {selectedAccessoriesInput.map((acc) => (
                       <div
                         key={acc.uuid}
-                        className="flex items-center gap-1.5 bg-[#FF4655]/10 border border-[#FF4655]/30 text-white pl-2 pr-1 py-1 text-[10px] font-black tracking-wider rounded-md shrink-0 select-none"
+                        className="flex items-center gap-2 bg-[#FF4655]/10 border border-[#FF4655]/30 text-white pl-3 pr-1.5 py-1.5 text-sm font-black tracking-wider rounded-md shrink-0 select-none"
                       >
                         {acc.displayIcon && (
-                          <img src={acc.displayIcon} alt="" className="h-3.5 w-auto object-contain shrink-0" />
+                          <img src={acc.displayIcon} alt="" className="h-5 w-auto object-contain shrink-0" />
                         )}
-                        <span className="truncate max-w-[120px]">{acc.displayName}</span>
-                        <span className="text-[8px] px-1 py-0.2 bg-black/40 text-zinc-400 rounded-sm scale-90">
+                        <span className="truncate max-w-[200px]">{acc.displayName}</span>
+                        <span className="text-xs px-1.5 py-0.5 bg-black/40 text-zinc-400 rounded-md">
                           {acc.type}
                         </span>
                         <button
@@ -916,9 +930,9 @@ export default function ShopPage() {
                             e.stopPropagation()
                             removeAccessory(acc.uuid)
                           }}
-                          className="text-zinc-550 hover:text-white p-0.5 transition-colors cursor-pointer"
+                          className="text-zinc-550 hover:text-white p-1 transition-colors cursor-pointer"
                         >
-                          <X className="w-3 h-3" />
+                          <X className="w-4 h-4" />
                         </button>
                       </div>
                     ))}
@@ -950,7 +964,7 @@ export default function ShopPage() {
                           }
                         }
                       }}
-                      className="flex-grow bg-transparent border-0 outline-none text-zinc-300 placeholder:text-zinc-655 min-w-[120px] p-0 focus:ring-0 focus:outline-none focus:border-transparent"
+                      className="grow bg-transparent border-0 outline-none text-zinc-300 placeholder:text-zinc-655 min-w-[200px] p-0 focus:ring-0 focus:outline-none focus:border-transparent text-base"
                     />
                   </div>
 
@@ -965,23 +979,23 @@ export default function ShopPage() {
                           key={acc.uuid}
                           type="button"
                           onClick={() => selectAccessory(acc)}
-                          className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-zinc-900/50 cursor-pointer transition-colors text-xs font-bold text-left border-b border-zinc-900/40"
+                          className="w-full flex items-center justify-between px-6 py-4 hover:bg-zinc-900/50 cursor-pointer transition-colors text-base font-bold text-left border-b border-zinc-900/40"
                         >
-                          <div className="flex items-center gap-3 min-w-0">
+                          <div className="flex items-center gap-4 min-w-0">
                             {acc.displayIcon ? (
-                              <img src={acc.displayIcon} alt="" className="w-10 h-auto max-h-6 object-contain shrink-0" />
+                              <img src={acc.displayIcon} alt="" className="w-16 h-auto max-h-10 object-contain shrink-0" />
                             ) : (
-                              <div className="w-10 h-6 bg-zinc-900 shrink-0" />
+                              <div className="w-16 h-10 bg-zinc-900 shrink-0" />
                             )}
                             <span className="text-zinc-300 hover:text-white truncate">{acc.displayName}</span>
                           </div>
-                          <span className="text-[9px] px-2 py-0.5 bg-zinc-900 text-zinc-400 rounded-sm font-semibold uppercase tracking-wider scale-90 border border-zinc-800">
+                          <span className="text-sm px-3 py-1 bg-zinc-900 text-zinc-400 rounded-md font-semibold uppercase tracking-wider border border-zinc-800">
                             {acc.type}
                           </span>
                         </button>
                       ))}
                       {visibleAccessoriesCount < filteredAccessories.length && (
-                        <div className="px-4 py-2.5 text-center text-[10px] text-zinc-550 font-bold uppercase tracking-wider border-t border-zinc-900/40 animate-pulse bg-zinc-950">
+                        <div className="px-6 py-4 text-center text-base text-zinc-550 font-bold uppercase tracking-wider border-t border-zinc-900/40 animate-pulse bg-zinc-950">
                           Loading more accessories...
                         </div>
                       )}
@@ -1021,7 +1035,7 @@ export default function ShopPage() {
                   <div className="absolute inset-4 bg-[#FF4655] rotate-45 animate-pulse rounded-[2px]" />
                 </div>
                 <span className="text-[10px] font-black tracking-[0.25em] text-[#FF4655] uppercase animate-pulse">
-                  SYNCING MARKET DETAILS...
+                  Loading
                 </span>
               </div>
             ) : (
@@ -1131,7 +1145,7 @@ export default function ShopPage() {
 
                             <div className="flex items-center gap-2">
                               <div className="text-right">
-                                <span className="block text-[8px] text-zinc-400 font-bold uppercase tracking-wider leading-none">RANK</span>
+                                <span className="block text-[8px] text-zinc-400 font-bold uppercase tracking-wider leading-none">CURRENT RANK</span>
                                 <span className="text-white font-heading text-xs font-black uppercase leading-none italic">{rankInfo?.tierName || 'Unranked'}</span>
                               </div>
                               {rankInfo?.smallIcon ? (

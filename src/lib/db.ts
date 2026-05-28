@@ -1,6 +1,6 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
-import { eq, and, inArray, desc, asc, like, or, sql, gte, lte } from 'drizzle-orm';
+import { eq, and, inArray, desc, asc, like, or, sql, gte, lte, ilike } from 'drizzle-orm';
 import * as schema from './schema';
 import { valorantAccounts, userPreferences, shopListings } from './schema';
 import { Account } from '@/utils/storage';
@@ -178,8 +178,9 @@ export async function getListings(options: GetListingsOptions) {
 
     if (options.search) {
       const searchCond = or(
-        like(valorantAccounts.name, `%${options.search}%`),
-        like(valorantAccounts.tag, `%${options.search}%`)
+        ilike(valorantAccounts.name, `%${options.search}%`),
+        ilike(valorantAccounts.tag, `%${options.search}%`),
+        ilike(sql`concat(${valorantAccounts.name}, '#', ${valorantAccounts.tag})`, `%${options.search}%`)
       );
       if (searchCond) {
         conditions.push(searchCond);
@@ -202,9 +203,20 @@ export async function getListings(options: GetListingsOptions) {
     }
 
     if (options.skins && options.skins.length > 0) {
-      conditions.push(
-        sql`${valorantAccounts.data}->'ownedSkins' ?| ${options.skins}`
-      );
+      for (const skinGroup of options.skins) {
+        const possibleUuids = skinGroup.split('|');
+        if (possibleUuids.length === 1) {
+          conditions.push(
+            ilike(sql`${valorantAccounts.data}->>'ownedSkins'`, `%${possibleUuids[0]}%`)
+          );
+        } else {
+          const orConditions = possibleUuids.map((u) =>
+            ilike(sql`${valorantAccounts.data}->>'ownedSkins'`, `%${u}%`)
+          );
+          const orCond = or(...orConditions);
+          if (orCond) conditions.push(orCond);
+        }
+      }
     }
 
     if (options.minPrice !== undefined) {

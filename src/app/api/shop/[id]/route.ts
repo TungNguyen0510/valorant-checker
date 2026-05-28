@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { auth, clerkClient } from '@clerk/nextjs/server';
 import * as db from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
@@ -14,7 +14,29 @@ export async function GET(
     if (!listing) {
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
     }
-    return NextResponse.json(listing);
+
+    // Fetch Clerk user details for sellerName
+    let sellerName = listing.sellerId;
+    try {
+      const client = await clerkClient();
+      const user = await client.users.getUser(listing.sellerId);
+      if (user) {
+        if (user.username) {
+          sellerName = user.username;
+        } else if (user.firstName || user.lastName) {
+          sellerName = [user.firstName, user.lastName].filter(Boolean).join(' ');
+        } else if (user.emailAddresses?.[0]?.emailAddress) {
+          sellerName = user.emailAddresses[0].emailAddress;
+        }
+      }
+    } catch (clerkErr) {
+      console.error('Failed to fetch clerk user details for seller:', clerkErr);
+    }
+
+    return NextResponse.json({
+      ...listing,
+      sellerName,
+    });
   } catch (err: any) {
     console.error('API GET /api/shop/[id] error:', err);
     return NextResponse.json({ error: err.message || 'Internal server error' }, { status: 500 });

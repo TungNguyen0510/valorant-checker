@@ -44,9 +44,6 @@ const DashboardLoading = () => {
         <span className="text-[10px] md:text-xs font-black tracking-[0.25em] text-[#FF4655] uppercase animate-pulse">
           Loading
         </span>
-        <span className="text-[8px] md:text-[10px] font-bold text-zinc-400 tracking-[0.15em] uppercase">
-          Syncing account details...
-        </span>
       </div>
     </div>
   )
@@ -318,7 +315,7 @@ export default function HomePage() {
         setLoading(true)
         try {
           const full = await storage.getAccount(id)
-          setResult(full.data)
+          setResult(full.data ? { ...full.data, listing: full.listing } : null)
           setAccounts(prev => prev.map(a => a.id === id ? full : a))
         } catch (err: any) {
           if (err.status === 401) {
@@ -332,7 +329,7 @@ export default function HomePage() {
           setLoading(false)
         }
       } else {
-        setResult(account.data)
+        setResult(account.data ? { ...account.data, listing: (account as any).listing } : null)
       }
     }
 
@@ -446,7 +443,7 @@ export default function HomePage() {
 
       await storage.setActiveAccountId(newAccount.id)
       setActiveAccountId(newAccount.id)
-      setResult(newAccount.data)
+      setResult(newAccount.data ? { ...newAccount.data, listing: (newAccount as any).listing } : null)
       setShowAddForm(false)
       setReauthAccountId(null)
       setRedirectUrl('')
@@ -471,7 +468,7 @@ export default function HomePage() {
         setLoading(true)
         try {
           const full = await storage.getAccount(id)
-          setResult(full.data)
+          setResult(full.data ? { ...full.data, listing: full.listing } : null)
           setAccounts(prev => prev.map(a => a.id === id ? full : a))
         } catch (err: any) {
           if (err.status === 401) {
@@ -486,7 +483,7 @@ export default function HomePage() {
           setLoading(false)
         }
       } else {
-        setResult(account.data)
+        setResult(account.data ? { ...account.data, listing: (account as any).listing } : null)
       }
       await storage.setActiveAccountId(id)
       setShowAddForm(false)
@@ -522,7 +519,7 @@ export default function HomePage() {
     try {
       setLoading(true)
       const updatedAccount = await storage.refreshAccount(activeAccountId)
-      setResult(updatedAccount.data)
+      setResult(updatedAccount.data ? { ...updatedAccount.data, listing: result?.listing } : null)
 
       // Update the accounts list locally with refreshed data
       setAccounts(prev => prev.map(a => a.id === activeAccountId ? updatedAccount : a))
@@ -546,8 +543,8 @@ export default function HomePage() {
     try {
       setLoading(true)
       const localAccount = await storage.getAccount(id)
-      setResult(localAccount.data)
-      
+      setResult(localAccount.data ? { ...localAccount.data, listing: localAccount.listing } : null)
+
       // Update account in accounts array with the new local listing data
       setAccounts(prev => prev.map(a => a.id === id ? localAccount : a))
       toast.success('Account state synced', { id: toastId })
