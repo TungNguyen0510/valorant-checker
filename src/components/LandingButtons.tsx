@@ -11,7 +11,7 @@ export default function LandingButtons() {
       <SignedIn>
         <Link
           href="/dashboard"
-          className="group relative px-6 py-2 bg-[#FF4655] hover:bg-[#ff5e6a] uppercase font-black tracking-widest text-lg transition-all duration-300 overflow-hidden cursor-pointer"
+          className="px-4 py-2 text-[10px] md:text-xs font-black uppercase tracking-widest transition-all duration-300 text-white bg-[#FF4655] shadow-[4px_4px_0px_0px_rgba(255,70,85,0.3)]"
         >
           Dashboard
         </Link>
