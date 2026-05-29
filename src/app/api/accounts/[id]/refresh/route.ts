@@ -13,8 +13,7 @@ export async function POST(
   }
 
   const { id } = await params;
-  const accounts = await db.getAccounts(userId);
-  const account = accounts.find((a) => a.id === id);
+  const account = await db.getAccountById(userId, id);
 
   if (!account) {
     return NextResponse.json({ error: 'Account not found' }, { status: 404 });
@@ -26,7 +25,7 @@ export async function POST(
     account.data = data;
     account.lastUpdated = Date.now();
     
-    await db.saveAccounts(userId, accounts);
+    await db.saveAccount(userId, account);
     
     const { accessToken, idToken, ...safeAccount } = account;
     return NextResponse.json(safeAccount);

@@ -66,16 +66,7 @@ export async function POST(request: Request) {
       data: data
     };
 
-    const accounts = await db.getAccounts(userId);
-    const index = accounts.findIndex((a) => a.id === newAccount.id);
-    
-    if (index >= 0) {
-      accounts[index] = newAccount;
-    } else {
-      accounts.push(newAccount);
-    }
-    
-    await db.saveAccounts(userId, accounts);
+    await db.saveAccount(userId, newAccount);
     
     // Return full version for POST (immediate use) but filter tokens
     const { accessToken: _, idToken: __, ...safeAccount } = newAccount;

@@ -208,7 +208,7 @@ export const Header = ({
                 </Link>
                 <Link
                   href="/shop"
-                  className="px-6 py-2 border border-[#ECE8E1]/20 hover:border-[#FF4655] transition-all duration-300 font-bold uppercase tracking-widest text-sm"
+                  className="px-4 py-2 text-[10px] md:text-xs font-black uppercase tracking-widest transition-all duration-300 text-white bg-[#FF4655] shadow-[4px_4px_0px_0px_rgba(255,70,85,0.3)]"
                 >
                   Shop
                 </Link>

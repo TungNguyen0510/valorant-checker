@@ -22,7 +22,16 @@ export interface ServerAccount extends Account {
 export async function getAccounts(userId: string): Promise<ServerAccount[]> {
   try {
     const rows = await db
-      .select()
+      .select({
+        id: valorantAccounts.id,
+        userId: valorantAccounts.userId,
+        name: valorantAccounts.name,
+        tag: valorantAccounts.tag,
+        accessToken: valorantAccounts.accessToken,
+        idToken: valorantAccounts.idToken,
+        lastUpdated: valorantAccounts.lastUpdated,
+        data: valorantAccounts.data,
+      })
       .from(valorantAccounts)
       .where(eq(valorantAccounts.userId, userId));
     
@@ -68,6 +77,9 @@ export async function saveAccounts(userId: string, accounts: ServerAccount[]) {
 
       // 3. Upsert current accounts
       for (const account of accounts) {
+        const { matchHistory, competitiveUpdates, matchDetails, ...summaryData } = account.data || {};
+        const matchData = { matchHistory, competitiveUpdates, matchDetails };
+
         await tx
           .insert(valorantAccounts)
           .values({
@@ -78,7 +90,8 @@ export async function saveAccounts(userId: string, accounts: ServerAccount[]) {
             accessToken: account.accessToken,
             idToken: account.idToken,
             lastUpdated: account.lastUpdated,
-            data: account.data,
+            data: summaryData,
+            matchData: matchData,
           })
           .onConflictDoUpdate({
             target: valorantAccounts.id,
@@ -88,13 +101,93 @@ export async function saveAccounts(userId: string, accounts: ServerAccount[]) {
               accessToken: account.accessToken,
               idToken: account.idToken,
               lastUpdated: account.lastUpdated,
-              data: account.data,
+              data: summaryData,
+              matchData: matchData,
             },
           });
       }
     });
   } catch (err) {
     console.error('Postgres saveAccounts error:', err);
+  }
+}
+
+export async function getAccountById(userId: string, id: string): Promise<ServerAccount | null> {
+  try {
+    const rows = await db
+      .select()
+      .from(valorantAccounts)
+      .where(and(eq(valorantAccounts.userId, userId), eq(valorantAccounts.id, id)))
+      .limit(1);
+    
+    if (rows.length === 0) return null;
+    const r = rows[0];
+    
+    // Merge data and matchData back together for backward compatibility
+    const fullData = {
+      ...(r.data as any || {}),
+      ...(r.matchData as any || {}),
+    };
+    
+    return {
+      id: r.id,
+      name: r.name,
+      tag: r.tag,
+      lastUpdated: Number(r.lastUpdated),
+      accessToken: r.accessToken,
+      idToken: r.idToken,
+      data: fullData,
+    };
+  } catch (err) {
+    console.error('Postgres getAccountById error:', err);
+    return null;
+  }
+}
+
+export async function saveAccount(userId: string, account: ServerAccount) {
+  try {
+    const { matchHistory, competitiveUpdates, matchDetails, ...summaryData } = account.data || {};
+    const matchData = { matchHistory, competitiveUpdates, matchDetails };
+
+    await db
+      .insert(valorantAccounts)
+      .values({
+        id: account.id,
+        userId: userId,
+        name: account.name,
+        tag: account.tag,
+        accessToken: account.accessToken,
+        idToken: account.idToken,
+        lastUpdated: account.lastUpdated,
+        data: summaryData,
+        matchData: matchData,
+      })
+      .onConflictDoUpdate({
+        target: valorantAccounts.id,
+        set: {
+          name: account.name,
+          tag: account.tag,
+          accessToken: account.accessToken,
+          idToken: account.idToken,
+          lastUpdated: account.lastUpdated,
+          data: summaryData,
+          matchData: matchData,
+        },
+      });
+  } catch (err) {
+    console.error('Postgres saveAccount error:', err);
+  }
+}
+
+export async function deleteAccount(userId: string, id: string): Promise<boolean> {
+  try {
+    await db
+      .delete(valorantAccounts)
+      .where(and(eq(valorantAccounts.userId, userId), eq(valorantAccounts.id, id)));
+    return true;
+  } catch (err) {
+    console.error('Postgres deleteAccount error:', err);
+    return false;
   }
 }
 
@@ -150,13 +243,14 @@ export interface GetListingsOptions {
   skins?: string[];
 }
 
-function extractAccountLevel(data: any): number {
+function extractAccountLevel(data: any, matchDetails?: any[]): number {
   if (data?.accountXP?.Progress?.Level) {
     return data.accountXP.Progress.Level;
   }
   const puuid = data?.puuid;
-  if (puuid && Array.isArray(data.matchDetails)) {
-    for (const match of data.matchDetails) {
+  const matches = matchDetails || data?.matchDetails;
+  if (puuid && Array.isArray(matches)) {
+    for (const match of matches) {
       if (match && Array.isArray(match.players)) {
         const me = match.players.find((p: any) => p.subject === puuid);
         if (me && typeof me.accountLevel === 'number') {
@@ -337,6 +431,7 @@ export async function getListingById(id: string) {
         accountName: valorantAccounts.name,
         accountTag: valorantAccounts.tag,
         accountData: valorantAccounts.data,
+        accountMatchData: valorantAccounts.matchData,
       })
       .from(shopListings)
       .innerJoin(valorantAccounts, eq(shopListings.accountId, valorantAccounts.id))
@@ -347,6 +442,7 @@ export async function getListingById(id: string) {
 
     const row = rows[0];
     const data = row.accountData as any;
+    const matchData = row.accountMatchData as any;
 
     const safeData = data ? {
       affinity: data.affinity,
@@ -362,10 +458,10 @@ export async function getListingById(id: string) {
       ownedSkins: data.ownedSkins,
       loadout: data.loadout,
       rank: data.rank,
-      matchHistory: data.matchHistory,
-      competitiveUpdates: data.competitiveUpdates,
-      matchDetails: data.matchDetails,
-      accountLevel: extractAccountLevel(data),
+      matchHistory: matchData?.matchHistory || data.matchHistory,
+      competitiveUpdates: matchData?.competitiveUpdates || data.competitiveUpdates,
+      matchDetails: matchData?.matchDetails || data.matchDetails,
+      accountLevel: extractAccountLevel(data, matchData?.matchDetails || data.matchDetails),
       accountXP: data.accountXP || null,
     } : null;
 

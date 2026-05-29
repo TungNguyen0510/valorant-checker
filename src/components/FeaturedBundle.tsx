@@ -69,7 +69,7 @@ export const FeaturedBundle = ({
                     <img
                       src={bundleInfo.displayIcon2 || bundleInfo.displayIcon}
                       alt={bundleInfo.displayName}
-                      className="w-full h-auto max-h-[250px] min-h-[200px] object-cover opacity-90 transition-transform duration-500 group-hover/banner:scale-[1.02] group-hover/banner:opacity-100"
+                      className="w-full h-auto max-h-[360px] min-h-[200px] object-cover opacity-90 transition-transform duration-500 group-hover/banner:scale-[1.02] group-hover/banner:opacity-100"
                     />
                     {/* Dark gradient overlay on hover */}
                     <div className="absolute inset-0 bg-black/20 group-hover/banner:bg-black/0 transition-all duration-300" />

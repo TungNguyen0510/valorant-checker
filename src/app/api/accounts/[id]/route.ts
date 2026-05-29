@@ -14,8 +14,7 @@ export async function GET(
   }
 
   const { id } = await params;
-  const accounts = await db.getAccounts(userId);
-  const account = accounts.find((a) => a.id === id);
+  const account = await db.getAccountById(userId, id);
 
   if (!account) {
     return NextResponse.json({ error: 'Account not found' }, { status: 404 });
@@ -48,9 +47,7 @@ export async function DELETE(
   }
 
   const { id } = await params;
-  const accounts = await db.getAccounts(userId);
-  const updated = accounts.filter((a) => a.id !== id);
-  await db.saveAccounts(userId, updated);
+  await db.deleteAccount(userId, id);
   
   const activeId = await db.getActiveAccountId(userId);
   if (activeId === id) {

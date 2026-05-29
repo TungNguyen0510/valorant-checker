@@ -9,6 +9,7 @@ export const valorantAccounts = pgTable('valorant_accounts', {
   idToken: text('id_token').notNull(),
   lastUpdated: bigint('last_updated', { mode: 'number' }).notNull(),
   data: jsonb('data').notNull(),
+  matchData: jsonb('match_data'),
 }, (table) => [
   index('idx_user_id').on(table.userId),
 ]);

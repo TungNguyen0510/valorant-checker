@@ -262,15 +262,194 @@ export async function getValorantData(accessToken: string, idToken: string) {
     affinity,
     puuid,
     version,
-    user,
-    store: storefront.data,
+    user: cleanUser(user),
+    store: cleanStorefront(storefront.data),
     wallet,
     ownedSkins,
-    loadout,
-    rank,
-    matchHistory,
-    competitiveUpdates,
-    matchDetails,
+    loadout: cleanLoadout(loadout),
+    rank: cleanRank(rank),
+    matchHistory: cleanMatchHistory(matchHistory),
+    competitiveUpdates: cleanCompetitiveUpdates(competitiveUpdates),
+    matchDetails: cleanMatchDetails(matchDetails),
     accountXP,
   }
+}
+
+export function cleanUser(user: any): any {
+  if (!user) return null;
+  return {
+    sub: user.sub,
+    acct: user.acct ? {
+      game_name: user.acct.game_name,
+      tag_line: user.acct.tag_line,
+    } : null,
+  };
+}
+
+export function cleanRank(rank: any): any {
+  if (!rank) return null;
+  return {
+    LatestCompetitiveUpdate: rank.LatestCompetitiveUpdate ? {
+      TierAfterUpdate: rank.LatestCompetitiveUpdate.TierAfterUpdate,
+      RankedRatingAfterUpdate: rank.LatestCompetitiveUpdate.RankedRatingAfterUpdate,
+      TierBeforeUpdate: rank.LatestCompetitiveUpdate.TierBeforeUpdate,
+      RankedRatingBeforeUpdate: rank.LatestCompetitiveUpdate.RankedRatingBeforeUpdate,
+      CompetitiveMovement: rank.LatestCompetitiveUpdate.CompetitiveMovement,
+      MatchID: rank.LatestCompetitiveUpdate.MatchID,
+      MapID: rank.LatestCompetitiveUpdate.MapID,
+    } : null,
+  };
+}
+
+export function cleanLoadout(loadout: any): any {
+  if (!loadout) return null;
+  return {
+    Guns: (loadout.Guns || []).map((g: any) => ({
+      ID: g.ID,
+      SkinID: g.SkinID,
+      ChromaID: g.ChromaID,
+      LevelID: g.LevelID,
+      CharmID: g.CharmID,
+      CharmLevelID: g.CharmLevelID,
+    })),
+    Identity: loadout.Identity ? {
+      PlayerCardID: loadout.Identity.PlayerCardID,
+      PlayerName: loadout.Identity.PlayerName,
+      PlayerTag: loadout.Identity.PlayerTag,
+    } : null,
+  };
+}
+
+export function cleanStorefront(store: any): any {
+  if (!store) return null;
+  return {
+    FeaturedBundle: store.FeaturedBundle ? {
+      Bundles: (store.FeaturedBundle.Bundles || []).map((b: any) => ({
+        DataAssetID: b.DataAssetID,
+        DurationRemainingInSeconds: b.DurationRemainingInSeconds,
+        TotalDiscountedCost: b.TotalDiscountedCost,
+        Items: (b.Items || []).map((item: any) => ({
+          Item: {
+            ItemID: item.Item?.ItemID,
+            ItemTypeID: item.Item?.ItemTypeID,
+          },
+          BasePrice: item.BasePrice,
+          DiscountedPrice: item.DiscountedPrice,
+          DiscountPercent: item.DiscountPercent,
+          DiscountedPercentage: item.DiscountedPercentage,
+        })),
+      })),
+    } : null,
+    SkinsPanelLayout: store.SkinsPanelLayout ? {
+      SingleItemOffers: store.SkinsPanelLayout.SingleItemOffers || [],
+      SingleItemOffersRemainingDurationInSeconds: store.SkinsPanelLayout.SingleItemOffersRemainingDurationInSeconds,
+      SingleItemStoreOffers: (store.SkinsPanelLayout.SingleItemStoreOffers || []).map((o: any) => ({
+        OfferID: o.OfferID,
+        Cost: o.Cost,
+      })),
+    } : null,
+    BonusStore: store.BonusStore ? {
+      BonusStoreRemainingDurationInSeconds: store.BonusStore.BonusStoreRemainingDurationInSeconds,
+      BonusStoreOffers: (store.BonusStore.BonusStoreOffers || []).map((o: any) => ({
+        OfferID: o.OfferID,
+        Offer: {
+          Rewards: (o.Offer?.Rewards || []).map((r: any) => ({ ItemID: r.ItemID })),
+          Cost: o.Offer?.Cost,
+        },
+        DiscountCosts: o.DiscountCosts,
+        DiscountPercent: o.DiscountPercent,
+      })),
+    } : null,
+    AccessoryStorePanel: store.AccessoryStorePanel ? {
+      AccessoryStoreRemainingDurationInSeconds: store.AccessoryStorePanel.AccessoryStoreRemainingDurationInSeconds,
+      AccessoryStoreOffers: (store.AccessoryStorePanel.AccessoryStoreOffers || []).map((o: any) => ({
+        OfferID: o.OfferID,
+        Cost: o.Cost,
+        Rewards: (o.Rewards || []).map((r: any) => ({
+          ItemID: r.ItemID,
+          ItemTypeID: r.ItemTypeID,
+        })),
+        Item: o.Item ? {
+          ItemID: o.Item.ItemID,
+          ItemTypeID: o.Item.ItemTypeID,
+        } : undefined,
+      })),
+    } : null,
+    AccessoryStore: store.AccessoryStore ? {
+      AccessoryStoreRemainingDurationInSeconds: store.AccessoryStore.AccessoryStoreRemainingDurationInSeconds,
+      AccessoryStoreOffers: (store.AccessoryStore.AccessoryStoreOffers || []).map((o: any) => ({
+        OfferID: o.OfferID,
+        Cost: o.Cost,
+        Rewards: (o.Rewards || []).map((r: any) => ({
+          ItemID: r.ItemID,
+          ItemTypeID: r.ItemTypeID,
+        })),
+        Item: o.Item ? {
+          ItemID: o.Item.ItemID,
+          ItemTypeID: o.Item.ItemTypeID,
+        } : undefined,
+      })),
+    } : null,
+  };
+}
+
+export function cleanMatchDetails(matchDetails: any[] | null | undefined): any[] {
+  if (!Array.isArray(matchDetails)) return [];
+  return matchDetails.map((m: any) => {
+    if (!m) return null;
+    return {
+      matchInfo: {
+        matchId: m.matchInfo?.matchId || m.matchInfo?.MatchID,
+        mapId: m.matchInfo?.mapId || m.matchInfo?.MapID,
+        queueID: m.matchInfo?.queueID || m.matchInfo?.QueueID || '',
+        queueId: m.matchInfo?.queueId || m.matchInfo?.QueueID || '',
+        roundPlayed: m.matchInfo?.roundPlayed,
+        gameStartMillis: m.matchInfo?.gameStartMillis,
+        gameLengthMillis: m.matchInfo?.gameLengthMillis,
+      },
+      teams: (m.teams || []).map((t: any) => ({
+        teamId: t.teamId,
+        roundsWon: t.roundsWon,
+      })),
+      players: (m.players || []).map((p: any) => ({
+        subject: p.subject,
+        gameName: p.gameName,
+        characterId: p.characterId,
+        teamId: p.teamId,
+        stats: p.stats ? {
+          score: p.stats.score,
+          kills: p.stats.kills,
+          deaths: p.stats.deaths,
+          assists: p.stats.assists,
+        } : null,
+      })),
+    };
+  }).filter(Boolean);
+}
+
+export function cleanMatchHistory(matchHistory: any): any {
+  if (!matchHistory) return null;
+  return {
+    History: (matchHistory.History || []).map((h: any) => ({
+      MatchID: h.MatchID,
+      MapID: h.MapID,
+      QueueID: h.QueueID,
+      GameStartTime: h.GameStartTime,
+    })),
+  };
+}
+
+export function cleanCompetitiveUpdates(competitiveUpdates: any): any {
+  if (!competitiveUpdates) return null;
+  return {
+    Matches: (competitiveUpdates.Matches || []).map((m: any) => ({
+      MatchID: m.MatchID,
+      MapID: m.MapID,
+      TierBeforeUpdate: m.TierBeforeUpdate,
+      TierAfterUpdate: m.TierAfterUpdate,
+      RankedRatingBeforeUpdate: m.RankedRatingBeforeUpdate,
+      RankedRatingAfterUpdate: m.RankedRatingAfterUpdate,
+      CompetitiveMovement: m.CompetitiveMovement,
+    })),
+  };
 }
