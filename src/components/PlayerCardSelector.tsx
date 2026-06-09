@@ -194,7 +194,7 @@ export const PlayerCardSelector = ({
         {/* Main Content: Preview Area */}
         <div className="flex-1 flex flex-col p-6 md:p-10 relative overflow-hidden bg-[#0a0a0c] h-1/2 md:h-full">
           {/* Decorative background grids */}
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px] pointer-events-none" />
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] pointer-events-none" />
 
           {/* Card Info Header */}
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 border-b border-zinc-800/80 pb-4">

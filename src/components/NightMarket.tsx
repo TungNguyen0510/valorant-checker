@@ -1,6 +1,8 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { SkinCard } from './SkinCard'
+import { FlippableCard } from './FlippableCard'
 
 interface NightMarketProps {
   bonusStore: any
@@ -9,9 +11,32 @@ interface NightMarketProps {
 }
 
 export const NightMarket = ({ bonusStore, weaponsData, onSkinClick }: NightMarketProps) => {
+  const [revealed, setRevealed] = useState<Record<string, boolean>>({})
+
   if (!bonusStore?.BonusStoreOffers) return null
 
   const remainingSeconds = bonusStore.BonusStoreRemainingDurationInSeconds || 0
+  const offerIdsKey = bonusStore.BonusStoreOffers.map((o: any) => o.OfferID).sort().join(',')
+
+  // Load revealed states from local storage
+  useEffect(() => {
+    const stored = localStorage.getItem(`night_market_revealed_${offerIdsKey}`)
+    if (stored) {
+      try {
+        setRevealed(JSON.parse(stored))
+      } catch (e) {
+        console.error(e)
+      }
+    }
+  }, [offerIdsKey])
+
+  const handleReveal = (offerId: string) => {
+    setRevealed(prev => {
+      const next = { ...prev, [offerId]: true }
+      localStorage.setItem(`night_market_revealed_${offerIdsKey}`, JSON.stringify(next))
+      return next
+    })
+  }
 
   return (
     <div className="my-6">
@@ -34,7 +59,7 @@ export const NightMarket = ({ bonusStore, weaponsData, onSkinClick }: NightMarke
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 p-1">
         {bonusStore.BonusStoreOffers.map((offer: any, idx: number) => {
           const skinId = offer.Offer.Rewards[0].ItemID
           const skin = weaponsData?.flatMap((w: any) => w.skins).find((s: any) => s.levels?.some((l: any) => l.uuid === skinId))
@@ -45,18 +70,28 @@ export const NightMarket = ({ bonusStore, weaponsData, onSkinClick }: NightMarke
           const discount = offer.DiscountPercent
 
           return (
-            <SkinCard
+            <FlippableCard
               key={`${offer.OfferID}-${idx}`}
-              skin={skin}
-              price={discountedPrice}
+              isRevealed={!!revealed[offer.OfferID]}
+              onReveal={() => handleReveal(offer.OfferID)}
+              contentTierUuid={skin?.contentTierUuid}
               isNightMarket={true}
-              discount={discount}
-              originalPrice={originalPrice}
-              onClick={() => skin && weapon && onSkinClick(weapon, skinId)}
-            />
+              className="h-[380px]"
+            >
+              <SkinCard
+                skin={skin}
+                price={discountedPrice}
+                isNightMarket={true}
+                discount={discount}
+                originalPrice={originalPrice}
+                onClick={() => skin && weapon && onSkinClick(weapon, skinId)}
+                className="h-full"
+              />
+            </FlippableCard>
           )
         })}
       </div>
     </div>
   )
 }
+

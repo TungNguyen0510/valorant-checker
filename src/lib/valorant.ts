@@ -362,33 +362,39 @@ export function cleanStorefront(store: any): any {
     } : null,
     AccessoryStorePanel: store.AccessoryStorePanel ? {
       AccessoryStoreRemainingDurationInSeconds: store.AccessoryStorePanel.AccessoryStoreRemainingDurationInSeconds,
-      AccessoryStoreOffers: (store.AccessoryStorePanel.AccessoryStoreOffers || []).map((o: any) => ({
-        OfferID: o.OfferID,
-        Cost: o.Cost,
-        Rewards: (o.Rewards || []).map((r: any) => ({
-          ItemID: r.ItemID,
-          ItemTypeID: r.ItemTypeID,
-        })),
-        Item: o.Item ? {
-          ItemID: o.Item.ItemID,
-          ItemTypeID: o.Item.ItemTypeID,
-        } : undefined,
-      })),
+      AccessoryStoreOffers: (store.AccessoryStorePanel.AccessoryStoreOffers || []).map((o: any) => {
+        const offer = o.Offer || o;
+        return {
+          OfferID: offer.OfferID,
+          Cost: offer.Cost,
+          Rewards: (offer.Rewards || []).map((r: any) => ({
+            ItemID: r.ItemID,
+            ItemTypeID: r.ItemTypeID,
+          })),
+          Item: offer.Item ? {
+            ItemID: offer.Item.ItemID,
+            ItemTypeID: offer.Item.ItemTypeID,
+          } : undefined,
+        };
+      }),
     } : null,
     AccessoryStore: store.AccessoryStore ? {
       AccessoryStoreRemainingDurationInSeconds: store.AccessoryStore.AccessoryStoreRemainingDurationInSeconds,
-      AccessoryStoreOffers: (store.AccessoryStore.AccessoryStoreOffers || []).map((o: any) => ({
-        OfferID: o.OfferID,
-        Cost: o.Cost,
-        Rewards: (o.Rewards || []).map((r: any) => ({
-          ItemID: r.ItemID,
-          ItemTypeID: r.ItemTypeID,
-        })),
-        Item: o.Item ? {
-          ItemID: o.Item.ItemID,
-          ItemTypeID: o.Item.ItemTypeID,
-        } : undefined,
-      })),
+      AccessoryStoreOffers: (store.AccessoryStore.AccessoryStoreOffers || []).map((o: any) => {
+        const offer = o.Offer || o;
+        return {
+          OfferID: offer.OfferID,
+          Cost: offer.Cost,
+          Rewards: (offer.Rewards || []).map((r: any) => ({
+            ItemID: r.ItemID,
+            ItemTypeID: r.ItemTypeID,
+          })),
+          Item: offer.Item ? {
+            ItemID: offer.Item.ItemID,
+            ItemTypeID: offer.Item.ItemTypeID,
+          } : undefined,
+        };
+      }),
     } : null,
   };
 }
